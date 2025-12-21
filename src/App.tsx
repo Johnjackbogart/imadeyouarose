@@ -1,6 +1,6 @@
-import { Canvas } from '@react-three/fiber'
-import Scene from './components/Scene'
-import './App.css'
+import { Canvas } from "@react-three/fiber";
+import Scene from "./components/Scene";
+import "./App.css";
 
 function App() {
   return (
@@ -13,11 +13,10 @@ function App() {
         <Scene />
       </Canvas>
       <div className="message">
-        <h1>For You</h1>
-        <p>A glass rose that will never fade</p>
+        <h1>i made this for you</h1>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
