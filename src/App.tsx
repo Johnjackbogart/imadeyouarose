@@ -13,7 +13,7 @@ function App() {
   });
   const [canvasReady, setCanvasReady] = useState(false);
   const [sceneVisible, setSceneVisible] = useState(false);
-  const [useRealisticRose, setUseRealisticRose] = useState(false);
+  const [roseType, setRoseType] = useState<"glass" | "realistic" | "spiral">("spiral");
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -49,7 +49,7 @@ function App() {
         dpr={isMobile ? 1 : [1, 2]}
         onCreated={() => setCanvasReady(true)}
       >
-        <Scene isMobile={isMobile} useRealisticRose={useRealisticRose} />
+        <Scene isMobile={isMobile} roseType={roseType} />
       </Canvas>
       <SunLoader
         canvasReady={canvasReady}
@@ -61,9 +61,16 @@ function App() {
       {sceneVisible && (
         <button
           className="rose-toggle"
-          onClick={() => setUseRealisticRose(!useRealisticRose)}
+          onClick={() => {
+            const types: ("glass" | "realistic" | "spiral")[] = ["glass", "realistic", "spiral"];
+            const currentIndex = types.indexOf(roseType);
+            const nextIndex = (currentIndex + 1) % types.length;
+            setRoseType(types[nextIndex]);
+          }}
         >
-          {useRealisticRose ? "Glass Rose" : "Realistic Rose"}
+          {roseType === "glass" && "Realistic Rose →"}
+          {roseType === "realistic" && "Spiral Rose →"}
+          {roseType === "spiral" && "Glass Rose →"}
         </button>
       )}
     </div>

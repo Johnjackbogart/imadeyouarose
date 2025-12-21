@@ -13,12 +13,15 @@ import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import GlassRose from "./GlassRose";
 import RealisticRose from "./RealisticRose";
+import SpiralRose from "./SpiralRose";
 import Sparkles from "./Sparkles";
 import MysticalSmoke from "./MysticalSmoke";
 
+type RoseType = "glass" | "realistic" | "spiral";
+
 type SceneProps = {
   isMobile?: boolean;
-  useRealisticRose?: boolean;
+  roseType?: RoseType;
 };
 
 function Lights() {
@@ -1476,7 +1479,18 @@ function SunsetClouds() {
   );
 }
 
-export default function Scene({ isMobile = false, useRealisticRose = false }: SceneProps) {
+function RoseComponent({ roseType }: { roseType: RoseType }) {
+  switch (roseType) {
+    case "realistic":
+      return <RealisticRose />;
+    case "spiral":
+      return <SpiralRose />;
+    default:
+      return <GlassRose />;
+  }
+}
+
+export default function Scene({ isMobile = false, roseType = "glass" }: SceneProps) {
   const { camera } = useThree();
   const controls = useRef<OrbitControlsImpl | null>(null);
 
@@ -1591,7 +1605,7 @@ export default function Scene({ isMobile = false, useRealisticRose = false }: Sc
           floatIntensity={0.3}
           floatingRange={[-0.05, 0.05]}
         >
-          {useRealisticRose ? <RealisticRose /> : <GlassRose />}
+          <RoseComponent roseType={roseType} />
         </Float>
 
         <GlassCube isMobile={isMobile} />
