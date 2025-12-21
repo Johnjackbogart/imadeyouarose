@@ -66,15 +66,12 @@ const fragmentShader = `
     return mix(nxy0, nxy1, f.z);
   }
 
+  // Simplified 2-octave fbm for better performance
   float fbm2(vec3 p) {
     float s = 0.0;
-    s += 0.56 * vnoise(p);
+    s += 0.65 * vnoise(p);
     p = p * 2.02 + 13.7;
-    s += 0.28 * vnoise(p);
-    p = p * 2.03 + 19.3;
-    s += 0.12 * vnoise(p);
-    p = p * 2.01 + 7.1;
-    s += 0.04 * vnoise(p);
+    s += 0.35 * vnoise(p);
     return s;
   }
 
@@ -122,12 +119,13 @@ const fragmentShader = `
   }
 
   vec3 calcNormal(vec3 p) {
-    // Central differences for smoother normals
-    vec2 e = vec2(0.0008, 0.0);
-    vec3 n = vec3(
-      mapDetail(p + e.xyy) - mapDetail(p - e.xyy),
-      mapDetail(p + e.yxy) - mapDetail(p - e.yxy),
-      mapDetail(p + e.yyx) - mapDetail(p - e.yyx)
+    // Forward differences - 3 samples instead of 6
+    vec2 e = vec2(0.002, 0.0);
+    float d = mapDetail(p);
+    vec3 n = d - vec3(
+      mapDetail(p - e.xyy),
+      mapDetail(p - e.yxy),
+      mapDetail(p - e.yyx)
     );
     return normalize(n);
   }
@@ -173,7 +171,7 @@ const fragmentShader = `
     // Centered around bloom
     vec3 C = vec3(0.0, 0.22, 0.0);
 
-    for (int i = 0; i < 58; i++) {
+    for (int i = 0; i < 32; i++) {
       vec3 p = ro + rd * d;
       vec3 q = p - C;
 
@@ -280,22 +278,21 @@ const fragmentShader = `
     bool hit = false;
     float maxT = max(4.0, length(ro) + 1.5);
     
-    // Higher iteration count for smoother results
-    for (int i = 0; i < 96; i++) {
+    // Optimized sphere tracing
+    for (int i = 0; i < 48; i++) {
       vec3 p = ro + rd * tHit;
       if (tHit > maxT) break;
 
       float d = mapDetail(p);
       
-      // Tighter threshold for sharper edges
-      if (abs(d) < 0.001) {
+      if (abs(d) < 0.002) {
         hp = p;
         hit = true;
         break;
       }
 
-      // Adaptive step with relaxation for smoother surface
-      tHit += d * 0.7;
+      // Larger steps for faster convergence
+      tHit += d * 0.85;
     }
 
     vec3 aura = stormWings(ro, rd, fragCoord);
@@ -380,9 +377,9 @@ export default function StormRose({
 }: StormRoseProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const { size, gl, camera } = useThree();
-  // Larger plane to avoid clipping the storm effect
+  // Larger plane to avoid clipping the storm effect (2x original)
   const planeSize = 2;
-  const quadScale = scale * 2;
+  const quadScale = scale * (2 / 1);
   const worldPos = useMemo(() => new THREE.Vector3(), []);
   const camToRose = useMemo(() => new THREE.Vector3(), []);
 

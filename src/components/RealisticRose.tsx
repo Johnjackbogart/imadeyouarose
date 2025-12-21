@@ -341,31 +341,10 @@ function createRealisticLeafGeometry() {
 
 const realisticLeafGeometry = createRealisticLeafGeometry();
 
-function RealisticPetal({ config, index }: { config: PetalConfig; index: number }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const baseRotation = useMemo(
-    () => new THREE.Euler(config.rotation[0], config.rotation[1], config.rotation[2]),
-    [config.rotation]
-  );
-
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    const t = state.clock.elapsedTime;
-
-    // Very subtle breathing - more realistic
-    const breathSpeed = 0.25;
-    const phase = index * 0.08;
-    const baseBreath = 0.03 + config.openness * 0.05;
-    const breath = Math.sin(t * breathSpeed + phase) * baseBreath;
-
-    meshRef.current.rotation.x = baseRotation.x + breath;
-    meshRef.current.rotation.y = baseRotation.y + Math.sin(t * 0.3 + phase) * 0.01 * config.openness;
-    meshRef.current.rotation.z = baseRotation.z + Math.sin(t * 0.25 + phase * 0.8) * 0.015 * config.openness;
-  });
-
+// Static petal - no individual animation, parent group handles motion
+function RealisticPetal({ config }: { config: PetalConfig }) {
   return (
     <mesh
-      ref={meshRef}
       geometry={realisticPetalGeometries[config.geometryIndex]}
       material={realisticPetalMaterials[config.materialIndex]}
       position={config.position}
@@ -519,7 +498,7 @@ function RealisticRoseBud() {
   return (
     <group ref={groupRef} position={[0, 1.5, 0]}>
       {petals.map((petal, i) => (
-        <RealisticPetal key={i} config={petal} index={i} />
+        <RealisticPetal key={i} config={petal} />
       ))}
       {sepals.map((sepal, i) => (
         <mesh
@@ -540,44 +519,18 @@ function RealisticRoseBud() {
   );
 }
 
+// Static leaf - parent group handles animation
 function RealisticLeaf({
   position,
   rotation,
   scale = 1,
-  phase = 0,
-  flutter = 0.03,
 }: {
   position: [number, number, number];
   rotation: [number, number, number];
   scale?: number;
-  phase?: number;
-  flutter?: number;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const baseRotation = useMemo(
-    () => new THREE.Euler(rotation[0], rotation[1], rotation[2]),
-    [rotation]
-  );
-  const basePosition = useMemo(
-    () => new THREE.Vector3(position[0], position[1], position[2]),
-    [position]
-  );
-
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    const t = state.clock.elapsedTime;
-    meshRef.current.rotation.x = baseRotation.x + Math.sin(t * 0.8 + phase) * flutter;
-    meshRef.current.rotation.y = baseRotation.y + Math.sin(t * 0.6 + phase * 1.1) * (flutter * 0.25);
-    meshRef.current.rotation.z = baseRotation.z + Math.sin(t * 1.0 + phase * 1.3) * (flutter * 0.5);
-
-    meshRef.current.position.x = basePosition.x + Math.sin(t * 0.5 + phase) * 0.005;
-    meshRef.current.position.y = basePosition.y + Math.sin(t * 0.7 + phase * 0.9) * 0.004;
-    meshRef.current.position.z = basePosition.z + Math.sin(t * 0.6 + phase * 1.2) * 0.005;
-  });
-
   return (
     <mesh
-      ref={meshRef}
       geometry={realisticLeafGeometry}
       material={realisticLeafMaterial}
       position={position}
@@ -715,8 +668,6 @@ function RealisticStemAssembly() {
           position={leaf.position}
           rotation={leaf.rotation}
           scale={leaf.scale}
-          phase={leaf.phase}
-          flutter={leaf.flutter}
         />
       ))}
     </group>

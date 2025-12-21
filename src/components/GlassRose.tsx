@@ -2,13 +2,7 @@ import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-interface LeafProps {
-  position: [number, number, number];
-  rotation: [number, number, number];
-  scale?: number;
-  phase?: number;
-  flutter?: number;
-}
+
 
 interface PetalConfig {
   position: [number, number, number];
@@ -388,49 +382,12 @@ function createLeafGeometry() {
 
 const leafGeometry = createLeafGeometry();
 
-interface AnimatedPetalProps {
-  config: PetalConfig;
-  index: number;
-}
 
-function AnimatedPetal({ config, index }: AnimatedPetalProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const baseRotation = useMemo(
-    () =>
-      new THREE.Euler(
-        config.rotation[0],
-        config.rotation[1],
-        config.rotation[2],
-      ),
-    [config.rotation],
-  );
 
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    const t = state.clock.elapsedTime;
-
-    // Breathing open/close animation
-    const breathSpeed = 0.4; // Breathing speed
-    const phase = index * 0.15; // Stagger the animation between petals
-
-    // Base breath amount - outer petals move more
-    const baseBreath = 0.15 + config.openness * 0.25;
-
-    // Main breathing motion - tilts petals open and closed
-    const breath = Math.sin(t * breathSpeed + phase) * baseBreath;
-
-    // Secondary wave for more organic feel
-    const secondaryWave = Math.sin(t * 0.8 + phase * 1.3) * 0.06 * config.openness;
-
-    // Apply rotations
-    meshRef.current.rotation.x = baseRotation.x + breath + secondaryWave;
-    meshRef.current.rotation.y = baseRotation.y + Math.sin(t * 0.5 + phase) * 0.04 * config.openness;
-    meshRef.current.rotation.z = baseRotation.z + Math.sin(t * 0.4 + phase * 0.8) * 0.05 * config.openness;
-  });
-
+// Static petal - parent group handles animation for better performance
+function AnimatedPetal({ config }: { config: PetalConfig }) {
   return (
     <mesh
-      ref={meshRef}
       geometry={petalGeometries[config.geometryIndex]}
       material={petalMaterials[config.materialIndex]}
       position={config.position}
@@ -520,7 +477,7 @@ function FallingPetals() {
     const rand = mulberry32(789);
 
     // Create falling petals around the rose - use outer layer geometries (9-14)
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 6; i++) {
       const angle = (i / 12) * Math.PI * 2 + rand() * 0.5;
       const radius = 0.8 + rand() * 1.2;
 
@@ -696,7 +653,7 @@ function RoseBud() {
   return (
     <group ref={groupRef} position={[0, 1.5, 0]}>
       {petals.map((petal, i) => (
-        <AnimatedPetal key={i} config={petal} index={i} />
+        <AnimatedPetal key={i} config={petal} />
       ))}
       {sepals.map((sepal, i) => (
         <mesh
@@ -717,44 +674,18 @@ function RoseBud() {
   );
 }
 
+// Static leaf - parent group handles animation
 function Leaf({
   position,
   rotation,
   scale = 1,
-  phase = 0,
-  flutter = 0.05,
-}: LeafProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const baseRotation = useMemo(
-    () => new THREE.Euler(rotation[0], rotation[1], rotation[2]),
-    [rotation],
-  );
-  const basePosition = useMemo(
-    () => new THREE.Vector3(position[0], position[1], position[2]),
-    [position],
-  );
-
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    const t = state.clock.elapsedTime;
-    meshRef.current.rotation.x =
-      baseRotation.x + Math.sin(t * 1.2 + phase) * flutter;
-    meshRef.current.rotation.y =
-      baseRotation.y + Math.sin(t * 0.9 + phase * 1.1) * (flutter * 0.35);
-    meshRef.current.rotation.z =
-      baseRotation.z + Math.sin(t * 1.6 + phase * 1.3) * (flutter * 0.7);
-
-    meshRef.current.position.x =
-      basePosition.x + Math.sin(t * 0.7 + phase) * 0.008;
-    meshRef.current.position.y =
-      basePosition.y + Math.sin(t * 1.0 + phase * 0.9) * 0.006;
-    meshRef.current.position.z =
-      basePosition.z + Math.sin(t * 0.8 + phase * 1.2) * 0.008;
-  });
-
+}: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale?: number;
+}) {
   return (
     <mesh
-      ref={meshRef}
       geometry={leafGeometry}
       material={leafMaterial}
       position={position}
@@ -899,8 +830,6 @@ function StemAssembly() {
           position={leaf.position}
           rotation={leaf.rotation}
           scale={leaf.scale}
-          phase={leaf.phase}
-          flutter={leaf.flutter}
         />
       ))}
     </group>
