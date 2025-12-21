@@ -16,6 +16,7 @@ interface PetalConfig {
   scale: number;
   geometryIndex: number;
   materialIndex: number;
+  openness: number; // 0-1 how open this petal is (outer petals more open)
 }
 
 interface ThornConfig {
@@ -326,6 +327,58 @@ function createLeafGeometry() {
 
 const leafGeometry = createLeafGeometry();
 
+interface AnimatedPetalProps {
+  config: PetalConfig;
+  index: number;
+}
+
+function AnimatedPetal({ config, index }: AnimatedPetalProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const baseRotation = useMemo(
+    () =>
+      new THREE.Euler(
+        config.rotation[0],
+        config.rotation[1],
+        config.rotation[2],
+      ),
+    [config.rotation],
+  );
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime;
+
+    // Breathing open/close animation
+    const breathSpeed = 0.4; // Breathing speed
+    const phase = index * 0.15; // Stagger the animation between petals
+
+    // Base breath amount - outer petals move more
+    const baseBreath = 0.15 + config.openness * 0.25;
+
+    // Main breathing motion - tilts petals open and closed
+    const breath = Math.sin(t * breathSpeed + phase) * baseBreath;
+
+    // Secondary wave for more organic feel
+    const secondaryWave = Math.sin(t * 0.8 + phase * 1.3) * 0.06 * config.openness;
+
+    // Apply rotations
+    meshRef.current.rotation.x = baseRotation.x + breath + secondaryWave;
+    meshRef.current.rotation.y = baseRotation.y + Math.sin(t * 0.5 + phase) * 0.04 * config.openness;
+    meshRef.current.rotation.z = baseRotation.z + Math.sin(t * 0.4 + phase * 0.8) * 0.05 * config.openness;
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={petalGeometries[config.geometryIndex]}
+      material={petalMaterials[config.materialIndex]}
+      position={config.position}
+      rotation={config.rotation}
+      scale={config.scale}
+    />
+  );
+}
+
 function RoseBud() {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -442,6 +495,7 @@ function RoseBud() {
         scale,
         geometryIndex,
         materialIndex,
+        openness: open, // Store how open this petal is for animation
       });
     }
     return petalConfigs;
@@ -476,7 +530,7 @@ function RoseBud() {
   useFrame((state) => {
     if (groupRef.current) {
       const t = state.clock.elapsedTime;
-      groupRef.current.rotation.y = t * 0.1;
+      groupRef.current.rotation.y = t * 0.25;
       groupRef.current.rotation.x = Math.sin(t * 0.6) * 0.03;
       const breath = 1 + Math.sin(t * 0.9) * 0.012;
       groupRef.current.scale.setScalar(breath);
@@ -486,14 +540,7 @@ function RoseBud() {
   return (
     <group ref={groupRef} position={[0, 1.5, 0]}>
       {petals.map((petal, i) => (
-        <mesh
-          key={i}
-          geometry={petalGeometries[petal.geometryIndex]}
-          material={petalMaterials[petal.materialIndex]}
-          position={petal.position}
-          rotation={petal.rotation}
-          scale={petal.scale}
-        />
+        <AnimatedPetal key={i} config={petal} index={i} />
       ))}
       {sepals.map((sepal, i) => (
         <mesh

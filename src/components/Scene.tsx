@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import {
   Environment,
   Float,
@@ -7,11 +7,17 @@ import {
   MeshTransmissionMaterial,
   RoundedBox,
 } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import GlassRose from "./GlassRose";
 import Sparkles from "./Sparkles";
 import MysticalSmoke from "./MysticalSmoke";
+
+type SceneProps = {
+  isMobile?: boolean;
+};
 
 function Lights() {
   return (
@@ -101,7 +107,7 @@ function createSeededRandom(seed: number) {
 
 function LowPolyMeadow() {
   const geometry = useMemo(() => {
-    const plane = new THREE.PlaneGeometry(34, 34, 14, 14);
+    const plane = new THREE.PlaneGeometry(34, 34, 40, 40);
     plane.rotateX(-Math.PI / 2);
 
     const positions = plane.attributes.position as THREE.BufferAttribute;
@@ -113,22 +119,40 @@ function LowPolyMeadow() {
       const z = positions.getZ(i);
       const dist = Math.sqrt(x * x + z * z);
       const innerRadius = 2.8;
-      const falloff = THREE.MathUtils.clamp((dist - innerRadius) / 9, 0, 1);
-      const wave = Math.sin(x * 0.3) * 0.22 + Math.cos(z * 0.28) * 0.2;
-      const ridge = Math.sin((x + z) * 0.2) * 0.26;
+      const falloff = THREE.MathUtils.clamp((dist - innerRadius) / 10, 0, 1);
+
+      // Gentle broad undulations (reduced from before)
+      const broadWave = Math.sin(x * 0.12) * Math.cos(z * 0.1) * 0.3;
+
+      // More detailed small-scale bumps
+      const bump1 = Math.sin(x * 0.8 + z * 0.6) * 0.15;
+      const bump2 = Math.cos(x * 1.2 - z * 0.9) * 0.12;
+      const bump3 = Math.sin(x * 1.5 + z * 1.3) * 0.1;
+
+      // Fine texture noise
       const jitterSeed = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
-      const jitter = (jitterSeed - Math.floor(jitterSeed) - 0.5) * 0.12;
-      const height = (wave + ridge + jitter) * (0.35 + falloff * 0.75);
+      const jitter = (jitterSeed - Math.floor(jitterSeed) - 0.5) * 0.15;
+
+      // Secondary noise layer
+      const noise2Seed = Math.sin(x * 7.233 + z * 19.898) * 23421.631;
+      const noise2 = (noise2Seed - Math.floor(noise2Seed) - 0.5) * 0.1;
+
+      // Combine with falloff from center
+      const broadHeight = broadWave * falloff;
+      const detailHeight = (bump1 + bump2 + bump3 + jitter + noise2) * (0.4 + falloff * 0.6);
+      const height = broadHeight + detailHeight;
 
       positions.setY(i, height);
 
+      // Vary color based on height
       const lightness = THREE.MathUtils.clamp(
-        0.27 + height * 0.35 + falloff * 0.1,
+        0.26 + height * 0.15 + falloff * 0.06,
         0.2,
-        0.48
+        0.42
       );
-      const hue = 0.33 + height * 0.015;
-      color.setHSL(hue, 0.55, lightness);
+      const hue = 0.32 + height * 0.025;
+      const saturation = 0.52 + falloff * 0.1;
+      color.setHSL(hue, saturation, lightness);
       colors.push(color.r, color.g, color.b);
     }
 
@@ -146,6 +170,173 @@ function LowPolyMeadow() {
         flatShading
       />
     </mesh>
+  );
+}
+
+// Helper to calculate meadow height at any position
+function getMeadowHeight(x: number, z: number): number {
+  const dist = Math.sqrt(x * x + z * z);
+  const innerRadius = 2.8;
+  const falloff = Math.max(0, Math.min(1, (dist - innerRadius) / 10));
+
+  const broadWave = Math.sin(x * 0.12) * Math.cos(z * 0.1) * 0.3;
+  const bump1 = Math.sin(x * 0.8 + z * 0.6) * 0.15;
+  const bump2 = Math.cos(x * 1.2 - z * 0.9) * 0.12;
+  const bump3 = Math.sin(x * 1.5 + z * 1.3) * 0.1;
+  const jitterSeed = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
+  const jitter = (jitterSeed - Math.floor(jitterSeed) - 0.5) * 0.15;
+
+  const broadHeight = broadWave * falloff;
+  const detailHeight = (bump1 + bump2 + bump3 + jitter) * (0.4 + falloff * 0.6);
+  return broadHeight + detailHeight;
+}
+
+// Grass tufts scattered across the meadow
+function GrassTufts() {
+  const grassData = useMemo(() => {
+    const rand = createSeededRandom(789);
+    const tufts: {
+      position: [number, number, number];
+      rotation: number;
+      scale: number;
+      color: string;
+    }[] = [];
+
+    const colors = ["#4a7c3f", "#3d6b35", "#5a8c4a", "#4d7842", "#3a6630"];
+
+    for (let i = 0; i < 200; i++) {
+      const angle = rand() * Math.PI * 2;
+      const radius = 3 + rand() * 13;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      const groundHeight = getMeadowHeight(x, z);
+
+      tufts.push({
+        position: [x, -2.45 + groundHeight, z],
+        rotation: rand() * Math.PI * 2,
+        scale: 0.08 + rand() * 0.12,
+        color: colors[Math.floor(rand() * colors.length)],
+      });
+    }
+
+    return tufts;
+  }, []);
+
+  return (
+    <group>
+      {grassData.map((tuft, i) => (
+        <group key={`grass-${i}`} position={tuft.position} rotation={[0, tuft.rotation, 0]}>
+          {/* Multiple grass blades per tuft */}
+          {[-0.03, 0, 0.03].map((offset, j) => (
+            <mesh
+              key={j}
+              position={[offset, tuft.scale * 0.5, 0]}
+              rotation={[0.1 + j * 0.05, 0, (j - 1) * 0.15]}
+            >
+              <coneGeometry args={[tuft.scale * 0.15, tuft.scale, 4]} />
+              <meshStandardMaterial
+                color={tuft.color}
+                roughness={0.9}
+                metalness={0.02}
+                flatShading
+              />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// Low poly bush cluster around the rose base
+function RoseBaseBush() {
+  const bushClusters = useMemo(() => {
+    const rand = createSeededRandom(555);
+    const clusters: {
+      position: [number, number, number];
+      scale: number;
+      color: string;
+    }[] = [];
+
+    const colors = ["#3d6b35", "#4a7c3f", "#2d5a28", "#3a6630", "#4d7842"];
+
+    // Create a ring of bushes around the base
+    for (let i = 0; i < 18; i++) {
+      const angle = (i / 18) * Math.PI * 2 + rand() * 0.3;
+      const radius = 2.2 + rand() * 0.5;
+      clusters.push({
+        position: [
+          Math.cos(angle) * radius,
+          -2.3 + rand() * 0.1,
+          Math.sin(angle) * radius,
+        ],
+        scale: 0.3 + rand() * 0.25,
+        color: colors[Math.floor(rand() * colors.length)],
+      });
+    }
+
+    // Add some smaller inner bushes
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2 + rand() * 0.5;
+      const radius = 2.6 + rand() * 0.4;
+      clusters.push({
+        position: [
+          Math.cos(angle) * radius,
+          -2.35 + rand() * 0.1,
+          Math.sin(angle) * radius,
+        ],
+        scale: 0.2 + rand() * 0.15,
+        color: colors[Math.floor(rand() * colors.length)],
+      });
+    }
+
+    return clusters;
+  }, []);
+
+  return (
+    <group>
+      {bushClusters.map((bush, i) => (
+        <group key={`bush-${i}`} position={bush.position}>
+          {/* Main bush sphere */}
+          <mesh scale={bush.scale}>
+            <dodecahedronGeometry args={[1, 0]} />
+            <meshStandardMaterial
+              color={bush.color}
+              roughness={0.9}
+              metalness={0.02}
+              flatShading
+            />
+          </mesh>
+          {/* Secondary smaller puff */}
+          <mesh
+            position={[bush.scale * 0.4, bush.scale * 0.2, bush.scale * 0.3]}
+            scale={bush.scale * 0.6}
+          >
+            <dodecahedronGeometry args={[1, 0]} />
+            <meshStandardMaterial
+              color={bush.color}
+              roughness={0.9}
+              metalness={0.02}
+              flatShading
+            />
+          </mesh>
+          {/* Third puff for fullness */}
+          <mesh
+            position={[-bush.scale * 0.3, bush.scale * 0.1, -bush.scale * 0.2]}
+            scale={bush.scale * 0.5}
+          >
+            <dodecahedronGeometry args={[1, 0]} />
+            <meshStandardMaterial
+              color={bush.color}
+              roughness={0.9}
+              metalness={0.02}
+              flatShading
+            />
+          </mesh>
+        </group>
+      ))}
+    </group>
   );
 }
 
@@ -405,7 +596,18 @@ function LowPolySunsetShapes() {
       orange: ['#ff5722', '#ff7043', '#ff8a65', '#ffab91', '#e65100'],
       pink: ['#e91e63', '#f06292', '#ff80ab', '#ff4081', '#c2185b'],
       red: ['#f44336', '#ef5350', '#e53935', '#ff1744', '#d32f2f'],
-      blue: ['#2196f3', '#64b5f6', '#1976d2', '#0d47a1', '#5c6bc0'],
+      blue: [
+        '#87CEEB', // light sky blue
+        '#64b5f6', // light blue
+        '#42a5f5', // medium blue
+        '#2196f3', // blue
+        '#1e88e5', // darker blue
+        '#1976d2', // deep blue
+        '#1565c0', // navy blue
+        '#0d47a1', // dark navy
+        '#5c6bc0', // indigo blue
+        '#3f51b5', // indigo
+      ],
       purple: ['#9c27b0', '#ba68c8', '#7b1fa2', '#6a1b9a', '#8e24aa'],
     };
 
@@ -672,6 +874,426 @@ function LowPolySun() {
   );
 }
 
+// Low poly log cabin
+function LowPolyCabin() {
+  const woodColor = "#8B4513";
+  const roofColor = "#5D4037";
+  const doorColor = "#4a3728";
+
+  // Cabin position
+  const cabinX = 6;
+  const cabinZ = 4;
+  const groundY = -2.45 + getMeadowHeight(cabinX, cabinZ);
+
+  // Triangular prism roof geometry
+  const roofGeometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const w = 1.0; // half width
+    const d = 0.8; // half depth
+    const h = 0.6; // height of peak
+
+    // Vertices for triangular prism roof
+    const positions = new Float32Array([
+      // Front triangle
+      -w, 0, d,
+      w, 0, d,
+      0, h, d,
+      // Back triangle
+      w, 0, -d,
+      -w, 0, -d,
+      0, h, -d,
+      // Left slope
+      -w, 0, d,
+      0, h, d,
+      0, h, -d,
+      -w, 0, d,
+      0, h, -d,
+      -w, 0, -d,
+      // Right slope
+      w, 0, d,
+      0, h, -d,
+      0, h, d,
+      w, 0, d,
+      w, 0, -d,
+      0, h, -d,
+    ]);
+
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.computeVertexNormals();
+    return geo;
+  }, []);
+
+  return (
+    <group position={[cabinX, groundY, cabinZ]} rotation={[0, Math.atan2(-cabinX, -cabinZ), 0]}>
+      {/* Main cabin body */}
+      <mesh position={[0, 0.6, 0]}>
+        <boxGeometry args={[1.8, 1.2, 1.4]} />
+        <meshStandardMaterial
+          color={woodColor}
+          roughness={0.95}
+          metalness={0.02}
+          flatShading
+        />
+      </mesh>
+
+      {/* Log texture lines on walls */}
+      {[0.2, 0.5, 0.8].map((y, i) => (
+        <mesh key={`log-front-${i}`} position={[0, y + 0.1, 0.71]}>
+          <boxGeometry args={[1.75, 0.08, 0.02]} />
+          <meshStandardMaterial color="#6d3a1a" roughness={1} flatShading />
+        </mesh>
+      ))}
+      {[0.2, 0.5, 0.8].map((y, i) => (
+        <mesh key={`log-back-${i}`} position={[0, y + 0.1, -0.71]}>
+          <boxGeometry args={[1.75, 0.08, 0.02]} />
+          <meshStandardMaterial color="#6d3a1a" roughness={1} flatShading />
+        </mesh>
+      ))}
+
+      {/* Roof - triangular prism aligned with walls */}
+      <mesh geometry={roofGeometry} position={[0, 1.2, 0]}>
+        <meshStandardMaterial
+          color={roofColor}
+          roughness={0.9}
+          metalness={0.05}
+          flatShading
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Door */}
+      <mesh position={[0, 0.4, 0.71]}>
+        <boxGeometry args={[0.4, 0.7, 0.05]} />
+        <meshStandardMaterial
+          color={doorColor}
+          roughness={0.9}
+          metalness={0.02}
+          flatShading
+        />
+      </mesh>
+
+      {/* Door handle */}
+      <mesh position={[0.12, 0.4, 0.75]}>
+        <sphereGeometry args={[0.04, 4, 4]} />
+        <meshStandardMaterial
+          color="#c9a227"
+          roughness={0.3}
+          metalness={0.8}
+          flatShading
+        />
+      </mesh>
+
+      {/* Window */}
+      <mesh position={[0.55, 0.7, 0.71]}>
+        <boxGeometry args={[0.35, 0.3, 0.05]} />
+        <meshStandardMaterial
+          color="#87CEEB"
+          roughness={0.1}
+          metalness={0.1}
+          transparent
+          opacity={0.7}
+        />
+      </mesh>
+
+      {/* Window frame */}
+      <mesh position={[0.55, 0.7, 0.73]}>
+        <boxGeometry args={[0.38, 0.03, 0.02]} />
+        <meshStandardMaterial color="#5a3d2b" roughness={1} flatShading />
+      </mesh>
+      <mesh position={[0.55, 0.7, 0.73]}>
+        <boxGeometry args={[0.03, 0.33, 0.02]} />
+        <meshStandardMaterial color="#5a3d2b" roughness={1} flatShading />
+      </mesh>
+
+      {/* Chimney */}
+      <mesh position={[-0.5, 1.6, 0]}>
+        <boxGeometry args={[0.25, 0.5, 0.25]} />
+        <meshStandardMaterial
+          color="#7a5c4f"
+          roughness={0.95}
+          metalness={0.02}
+          flatShading
+        />
+      </mesh>
+
+      {/* Small step/porch */}
+      <mesh position={[0, 0.05, 0.9]}>
+        <boxGeometry args={[0.6, 0.1, 0.3]} />
+        <meshStandardMaterial
+          color="#9a6b4a"
+          roughness={0.95}
+          metalness={0.02}
+          flatShading
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// Low poly pond with reflective water
+interface PondProps {
+  position: [number, number, number];
+  scale?: number;
+  seed?: number;
+  hasLilies?: boolean;
+}
+
+function LowPolyPond({ position, scale = 1, seed = 123, hasLilies = true }: PondProps) {
+  const pondGeometry = useMemo(() => {
+    const geo = new THREE.CircleGeometry(1.5 * scale, 8);
+    geo.rotateX(-Math.PI / 2);
+    return geo;
+  }, [scale]);
+
+  const rocks = useMemo(() => {
+    const rand = createSeededRandom(seed);
+    const rockCount = Math.max(4, Math.floor(6 * scale));
+    return Array.from({ length: rockCount }, (_, i) => {
+      const angle = (i / rockCount) * Math.PI * 2 + rand() * 0.3;
+      const radius = (1.4 + rand() * 0.4) * scale;
+      const rockScale = (0.15 + rand() * 0.2) * scale;
+      return {
+        position: [Math.cos(angle) * radius, -0.1, Math.sin(angle) * radius] as const,
+        scale: rockScale,
+        rotation: [rand() * 0.5, rand() * Math.PI * 2, rand() * 0.5] as const,
+      };
+    });
+  }, [scale, seed]);
+
+  return (
+    <group position={position}>
+      {/* Water surface */}
+      <mesh geometry={pondGeometry} position={[0, 0.05, 0]}>
+        <meshStandardMaterial
+          color="#3a7ca5"
+          roughness={0.1}
+          metalness={0.4}
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
+
+      {/* Deeper center */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1 * scale, 6]} />
+        <meshStandardMaterial
+          color="#2d5a7b"
+          roughness={0.05}
+          metalness={0.5}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+
+      {/* Pond edge/bank */}
+      <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[1.5 * scale, 0.15 * scale, 4, 8]} />
+        <meshStandardMaterial
+          color="#6d5a4a"
+          roughness={0.95}
+          metalness={0.02}
+          flatShading
+        />
+      </mesh>
+
+      {/* Rocks around pond */}
+      {rocks.map((rock, i) => (
+        <mesh
+          key={`pond-rock-${i}`}
+          position={rock.position}
+          rotation={rock.rotation}
+          scale={rock.scale}
+        >
+          <dodecahedronGeometry args={[1, 0]} />
+          <meshStandardMaterial
+            color="#7a7a7a"
+            roughness={0.85}
+            metalness={0.08}
+            flatShading
+          />
+        </mesh>
+      ))}
+
+      {/* Water lily pads */}
+      {hasLilies && scale >= 0.6 && (
+        <>
+          <mesh position={[0.4 * scale, 0.08, 0.3 * scale]} rotation={[-Math.PI / 2, 0, 0.5]}>
+            <circleGeometry args={[0.18 * scale, 6]} />
+            <meshStandardMaterial
+              color="#4a8c5c"
+              roughness={0.8}
+              metalness={0.05}
+              flatShading
+            />
+          </mesh>
+          <mesh position={[-0.3 * scale, 0.08, -0.5 * scale]} rotation={[-Math.PI / 2, 0, 1.2]}>
+            <circleGeometry args={[0.15 * scale, 6]} />
+            <meshStandardMaterial
+              color="#3d7a4f"
+              roughness={0.8}
+              metalness={0.05}
+              flatShading
+            />
+          </mesh>
+          {scale >= 1 && (
+            <mesh position={[0.6 * scale, 0.08, -0.2 * scale]} rotation={[-Math.PI / 2, 0, 2.1]}>
+              <circleGeometry args={[0.12 * scale, 5]} />
+              <meshStandardMaterial
+                color="#5a9a6a"
+                roughness={0.8}
+                metalness={0.05}
+                flatShading
+              />
+            </mesh>
+          )}
+        </>
+      )}
+    </group>
+  );
+}
+
+// Low poly river flowing through the scene
+function LowPolyRiver() {
+  const riverPath = useMemo(() => {
+    // River flows across the meadow in a visible arc
+    // Calculate y positions based on terrain
+    const pathPoints: [number, number, number][] = [];
+    const xzPoints: [number, number][] = [
+      [-12, -5],
+      [-8, -3],
+      [-4, -2],
+      [0, -2.5],
+      [4, -4],
+      [8, -6],
+      [12, -8],
+    ];
+
+    for (const [x, z] of xzPoints) {
+      const y = -2.42 + getMeadowHeight(x, z); // Slightly above ground
+      pathPoints.push([x, y, z]);
+    }
+
+    return pathPoints;
+  }, []);
+
+  const riverGeometry = useMemo(() => {
+    const width = 0.9;
+
+    // Create river segments
+    const positions: number[] = [];
+    const colors: number[] = [];
+    const color = new THREE.Color();
+
+    for (let i = 0; i < riverPath.length - 1; i++) {
+      const curr = riverPath[i];
+      const next = riverPath[i + 1];
+
+      // Calculate perpendicular direction for width
+      const dx = next[0] - curr[0];
+      const dz = next[2] - curr[2];
+      const len = Math.sqrt(dx * dx + dz * dz);
+      const perpX = -dz / len;
+      const perpZ = dx / len;
+
+      // Vary width slightly along river
+      const w1 = width * (0.9 + Math.sin(i * 0.7) * 0.2);
+      const w2 = width * (0.9 + Math.sin((i + 1) * 0.7) * 0.2);
+
+      // Two triangles per segment
+      // Triangle 1
+      positions.push(
+        curr[0] + perpX * w1, curr[1], curr[2] + perpZ * w1,
+        curr[0] - perpX * w1, curr[1], curr[2] - perpZ * w1,
+        next[0] + perpX * w2, next[1], next[2] + perpZ * w2
+      );
+      // Triangle 2
+      positions.push(
+        curr[0] - perpX * w1, curr[1], curr[2] - perpZ * w1,
+        next[0] - perpX * w2, next[1], next[2] - perpZ * w2,
+        next[0] + perpX * w2, next[1], next[2] + perpZ * w2
+      );
+
+      // Colors - blue water
+      for (let j = 0; j < 6; j++) {
+        color.setHSL(0.55, 0.65, 0.4);
+        colors.push(color.r, color.g, color.b);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+
+    return geo;
+  }, [riverPath]);
+
+  // River bank rocks
+  const bankRocks = useMemo(() => {
+    const rand = createSeededRandom(456);
+    const rocks: { position: [number, number, number]; scale: number; rotation: [number, number, number] }[] = [];
+
+    for (let i = 0; i < riverPath.length - 1; i++) {
+      const curr = riverPath[i];
+      const next = riverPath[i + 1];
+      const dx = next[0] - curr[0];
+      const dz = next[2] - curr[2];
+      const len = Math.sqrt(dx * dx + dz * dz);
+      const perpX = -dz / len;
+      const perpZ = dx / len;
+
+      // Add rocks on both sides
+      for (let side = -1; side <= 1; side += 2) {
+        if (rand() > 0.4) {
+          const offset = 1.0 + rand() * 0.3;
+          const rx = curr[0] + perpX * offset * side;
+          const rz = curr[2] + perpZ * offset * side;
+          rocks.push({
+            position: [rx, -2.42 + getMeadowHeight(rx, rz), rz],
+            scale: 0.15 + rand() * 0.2,
+            rotation: [rand() * 0.5, rand() * Math.PI * 2, rand() * 0.5],
+          });
+        }
+      }
+    }
+
+    return rocks;
+  }, [riverPath]);
+
+  return (
+    <group>
+      {/* River water */}
+      <mesh geometry={riverGeometry}>
+        <meshStandardMaterial
+          vertexColors
+          roughness={0.05}
+          metalness={0.6}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+
+      {/* River bank rocks */}
+      {bankRocks.map((rock, i) => (
+        <mesh
+          key={`river-rock-${i}`}
+          position={rock.position}
+          rotation={rock.rotation}
+          scale={rock.scale}
+        >
+          <dodecahedronGeometry args={[1, 0]} />
+          <meshStandardMaterial
+            color="#6a6a6a"
+            roughness={0.85}
+            metalness={0.08}
+            flatShading
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 // Sunset-colored clouds
 function SunsetClouds() {
   const clouds = useMemo(() => {
@@ -750,7 +1372,20 @@ function SunsetClouds() {
   );
 }
 
-export default function Scene() {
+export default function Scene({ isMobile = false }: SceneProps) {
+  const { camera } = useThree();
+  const controls = useRef<OrbitControlsImpl | null>(null);
+
+  useEffect(() => {
+    const position = isMobile ? [0, 1.4, 12] : [0, 1, 8];
+    camera.position.set(position[0], position[1], position[2]);
+    camera.updateProjectionMatrix();
+    controls.current?.update();
+  }, [camera, isMobile]);
+
+  const maxDistance = isMobile ? 14 : 8;
+  const minDistance = isMobile ? 5 : 3;
+
   return (
     <>
       {/* Light blue sky background */}
@@ -785,9 +1420,19 @@ export default function Scene() {
         <Environment environmentIntensity={0.2} preset="studio" />
 
         <LowPolyMeadow />
+        <GrassTufts />
         <LowPolyHills />
         <LowPolyTrees />
         <LowPolyRocks />
+        <LowPolyCabin />
+        <LowPolyRiver />
+        {/* Multiple ponds of various sizes - slightly above terrain */}
+        <LowPolyPond position={[-5, -2.35 + getMeadowHeight(-5, 5), 5]} scale={1} seed={123} />
+        <LowPolyPond position={[8, -2.35 + getMeadowHeight(8, -2), -2]} scale={0.7} seed={234} />
+        <LowPolyPond position={[-8, -2.35 + getMeadowHeight(-8, -6), -6]} scale={1.3} seed={345} />
+        <LowPolyPond position={[4, -2.35 + getMeadowHeight(4, 8), 8]} scale={0.5} seed={456} hasLilies={false} />
+        <LowPolyPond position={[-3, -2.35 + getMeadowHeight(-3, -7), -7]} scale={0.8} seed={567} />
+        <LowPolyPond position={[9, -2.35 + getMeadowHeight(9, 6), 6]} scale={0.6} seed={678} hasLilies={false} />
 
         <Float
           speed={1}
@@ -799,15 +1444,17 @@ export default function Scene() {
         </Float>
 
         <GlassCube />
+        <RoseBaseBush />
         <Sparkles count={80} radius={2.5} />
         <MysticalSmoke />
       </Suspense>
 
       <OrbitControls
+        ref={controls}
         enablePan={false}
         enableZoom={true}
-        minDistance={3}
-        maxDistance={8}
+        minDistance={minDistance}
+        maxDistance={maxDistance}
         minPolarAngle={Math.PI / 6}
         maxPolarAngle={Math.PI / 2}
         autoRotate

@@ -1,6 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 import Scene from "./components/Scene";
+import SunLoader from "./components/SunLoader";
 import "./App.css";
 
 function App() {
@@ -10,6 +11,8 @@ function App() {
     }
     return window.matchMedia("(max-width: 768px)").matches;
   });
+  const [canvasReady, setCanvasReady] = useState(false);
+  const [sceneVisible, setSceneVisible] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -35,12 +38,18 @@ function App() {
   return (
     <div className="app">
       <Canvas
+        className={`scene-canvas${sceneVisible ? " is-ready" : ""}`}
         camera={camera}
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
+        onCreated={() => setCanvasReady(true)}
       >
-        <Scene />
+        <Scene isMobile={isMobile} />
       </Canvas>
+      <SunLoader
+        canvasReady={canvasReady}
+        onComplete={() => setSceneVisible(true)}
+      />
       <div className="message">
         <h1>i made this for you</h1>
       </div>
