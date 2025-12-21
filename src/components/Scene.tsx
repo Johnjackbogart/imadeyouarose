@@ -22,12 +22,12 @@ type SceneProps = {
 function Lights() {
   return (
     <>
-      {/* Warm ambient for sunset */}
-      <ambientLight intensity={0.3} color="#ffccaa" />
+      {/* Warm ambient for sunset - increased */}
+      <ambientLight intensity={0.6} color="#ffccaa" />
 
-      {/* Sky hemisphere - warm sunset tones */}
+      {/* Sky hemisphere - warm sunset tones - increased */}
       <hemisphereLight
-        intensity={0.6}
+        intensity={1.0}
         color="#ff7744"
         groundColor="#442244"
       />
@@ -35,7 +35,7 @@ function Lights() {
       {/* Main sun directional light - coming from sun position */}
       <directionalLight
         position={[-20, 5, -25]}
-        intensity={1.5}
+        intensity={2.0}
         color="#ffaa55"
       />
 
@@ -44,7 +44,7 @@ function Lights() {
         position={[-10, 8, -10]}
         angle={0.5}
         penumbra={1}
-        intensity={1.2}
+        intensity={1.8}
         color="#ff8844"
       />
 
@@ -53,15 +53,18 @@ function Lights() {
         position={[8, 4, 8]}
         angle={0.6}
         penumbra={1}
-        intensity={0.6}
+        intensity={1.0}
         color="#8866aa"
       />
 
-      {/* Accent light on the rose */}
-      <pointLight position={[0, 3, 0]} intensity={0.8} color="#ffbb77" />
+      {/* Accent light on the rose - increased */}
+      <pointLight position={[0, 3, 0]} intensity={1.5} color="#ffbb77" />
 
       {/* Cool shadow fill */}
-      <pointLight position={[3, -1, 3]} intensity={0.25} color="#6644aa" />
+      <pointLight position={[3, -1, 3]} intensity={0.5} color="#6644aa" />
+
+      {/* Additional fill light for overall brightness */}
+      <pointLight position={[0, 5, 5]} intensity={0.8} color="#ffffff" />
     </>
   );
 }
@@ -1155,21 +1158,22 @@ function LowPolyPond({ position, scale = 1, seed = 123, hasLilies = true }: Pond
 // Low poly river flowing through the scene
 function LowPolyRiver() {
   const riverPath = useMemo(() => {
-    // River flows across the meadow in a visible arc
+    // River flows across the front of the meadow where it's visible
     // Calculate y positions based on terrain
     const pathPoints: [number, number, number][] = [];
     const xzPoints: [number, number][] = [
-      [-12, -5],
-      [-8, -3],
-      [-4, -2],
-      [0, -2.5],
-      [4, -4],
-      [8, -6],
-      [12, -8],
+      [-12, 6],
+      [-8, 5],
+      [-5, 4.5],
+      [-3, 5],
+      [0, 6],
+      [3, 7],
+      [6, 8],
+      [10, 10],
     ];
 
     for (const [x, z] of xzPoints) {
-      const y = -2.42 + getMeadowHeight(x, z); // Slightly above ground
+      const y = -2.38 + getMeadowHeight(x, z); // Slightly above ground
       pathPoints.push([x, y, z]);
     }
 
@@ -1417,8 +1421,6 @@ export default function Scene({ isMobile = false }: SceneProps) {
       />
 
       <Suspense fallback={null}>
-        <Environment environmentIntensity={0.2} preset="studio" />
-
         <LowPolyMeadow />
         <GrassTufts />
         <LowPolyHills />

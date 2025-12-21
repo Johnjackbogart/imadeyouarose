@@ -177,7 +177,7 @@ function SmokePuff({
     materialRef.current.uniforms.uTime.value = time
 
     // Rise and expand
-    const rise = age * 4
+    const rise = age * 2.5
     const expand = 1 + age * 2
 
     meshRef.current.position.y = baseY + rise
@@ -714,7 +714,7 @@ function SmokeSprite({
     const spiralAngle = time * 0.5 + delay * 3
     const spiralRadius = 0.1 + age * 0.3
 
-    const rise = age * 5
+    const rise = age * 3
     spriteRef.current.position.set(
       initialPosition[0] + turbulenceX + Math.cos(spiralAngle) * spiralRadius,
       initialPosition[1] + rise,
@@ -800,10 +800,10 @@ export default function MysticalSmoke() {
   // Generate flowing ribbon tendrils - organic spirals around the cube
   const ribbons = useMemo(() => {
     return [
-      { id: 0, baseRadius: 2.5, heightStart: -2.2, heightEnd: 4.2, spiralTurns: 2.5, ribbonWidth: 0.4, speed: 0.8, color: '#d0c8e8', phaseOffset: 0 },
-      { id: 1, baseRadius: 2.6, heightStart: -2.0, heightEnd: 4.0, spiralTurns: 2.0, ribbonWidth: 0.35, speed: 0.7, color: '#c8c0e0', phaseOffset: Math.PI * 0.5 },
-      { id: 2, baseRadius: 2.4, heightStart: -2.1, heightEnd: 4.3, spiralTurns: 3.0, ribbonWidth: 0.3, speed: 0.9, color: '#dcd4f0', phaseOffset: Math.PI },
-      { id: 3, baseRadius: 2.55, heightStart: -1.9, heightEnd: 3.9, spiralTurns: 2.2, ribbonWidth: 0.38, speed: 0.75, color: '#e0d8f8', phaseOffset: Math.PI * 1.5 },
+      { id: 0, baseRadius: 2.5, heightStart: -2.2, heightEnd: 2.0, spiralTurns: 2.5, ribbonWidth: 0.4, speed: 0.8, color: '#d0c8e8', phaseOffset: 0 },
+      { id: 1, baseRadius: 2.6, heightStart: -2.0, heightEnd: 1.8, spiralTurns: 2.0, ribbonWidth: 0.35, speed: 0.7, color: '#c8c0e0', phaseOffset: Math.PI * 0.5 },
+      { id: 2, baseRadius: 2.4, heightStart: -2.1, heightEnd: 2.2, spiralTurns: 3.0, ribbonWidth: 0.3, speed: 0.9, color: '#dcd4f0', phaseOffset: Math.PI },
+      { id: 3, baseRadius: 2.55, heightStart: -1.9, heightEnd: 1.6, spiralTurns: 2.2, ribbonWidth: 0.38, speed: 0.75, color: '#e0d8f8', phaseOffset: Math.PI * 1.5 },
     ]
   }, [])
 
@@ -817,7 +817,7 @@ export default function MysticalSmoke() {
         startAngle,
         spiralAmount: Math.PI * (1.5 + Math.random() * 1.5),
         heightStart: -2.3 + Math.random() * 0.3,
-        heightEnd: 3.5 + Math.random() * 1.5,
+        heightEnd: 1.0 + Math.random() * 0.8,
         baseRadius: 2.4 + Math.random() * 0.3,
         thickness: 0.06 + Math.random() * 0.03,
         speed: 0.8 + Math.random() * 0.4,
@@ -834,7 +834,7 @@ export default function MysticalSmoke() {
         startAngle,
         spiralAmount: Math.PI * (2 + Math.random() * 2),
         heightStart: -2.1 + Math.random() * 0.5,
-        heightEnd: 2.8 + Math.random() * 1.8,
+        heightEnd: 0.5 + Math.random() * 1.0,
         baseRadius: 2.35 + Math.random() * 0.4,
         thickness: 0.04 + Math.random() * 0.02,
         speed: 1.0 + Math.random() * 0.5,
@@ -851,7 +851,7 @@ export default function MysticalSmoke() {
         startAngle,
         spiralAmount: Math.PI * (2.5 + Math.random() * 2.5),
         heightStart: -2.0 + Math.random() * 0.6,
-        heightEnd: 2.5 + Math.random() * 2.0,
+        heightEnd: 0.3 + Math.random() * 1.0,
         baseRadius: 2.3 + Math.random() * 0.5,
         thickness: 0.025 + Math.random() * 0.015,
         speed: 1.2 + Math.random() * 0.6,

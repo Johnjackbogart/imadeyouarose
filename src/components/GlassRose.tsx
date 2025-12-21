@@ -379,13 +379,127 @@ function AnimatedPetal({ config, index }: AnimatedPetalProps) {
   );
 }
 
+// Falling petal component
+interface FallingPetalConfig {
+  startPosition: [number, number, number];
+  rotation: [number, number, number];
+  scale: number;
+  geometryIndex: number;
+  materialIndex: number;
+  fallSpeed: number;
+  swaySpeed: number;
+  swayAmount: number;
+  spinSpeed: number;
+  delay: number;
+}
+
+function FallingPetal({ config }: { config: FallingPetalConfig }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime;
+
+    // Offset time by delay
+    const time = t - config.delay;
+    if (time < 0) {
+      meshRef.current.visible = false;
+      return;
+    }
+    meshRef.current.visible = true;
+
+    // Fall cycle - petals fall and then reset
+    const fallCycle = 8; // seconds to complete one fall
+    const cycleTime = (time % fallCycle) / fallCycle;
+
+    // Y position - fall from top to bottom
+    const fallHeight = 4; // total fall distance
+    const y = config.startPosition[1] - cycleTime * fallHeight;
+
+    // Swaying motion
+    const swayX = Math.sin(time * config.swaySpeed + config.delay) * config.swayAmount;
+    const swayZ = Math.cos(time * config.swaySpeed * 0.7 + config.delay * 1.3) * config.swayAmount * 0.6;
+
+    meshRef.current.position.set(
+      config.startPosition[0] + swayX,
+      y,
+      config.startPosition[2] + swayZ
+    );
+
+    // Tumbling rotation
+    meshRef.current.rotation.x = config.rotation[0] + time * config.spinSpeed * 0.5;
+    meshRef.current.rotation.y = config.rotation[1] + time * config.spinSpeed;
+    meshRef.current.rotation.z = config.rotation[2] + Math.sin(time * 1.5 + config.delay) * 0.3;
+
+    // Fade out near bottom
+    const fadeStart = 0.7;
+    if (cycleTime > fadeStart) {
+      const fade = 1 - (cycleTime - fadeStart) / (1 - fadeStart);
+      meshRef.current.scale.setScalar(config.scale * fade);
+    } else {
+      meshRef.current.scale.setScalar(config.scale);
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={petalGeometries[config.geometryIndex]}
+      material={petalMaterials[config.materialIndex]}
+      position={config.startPosition}
+      rotation={config.rotation}
+      scale={config.scale}
+    />
+  );
+}
+
+function FallingPetals() {
+  const petals = useMemo(() => {
+    const configs: FallingPetalConfig[] = [];
+    const rand = mulberry32(789);
+
+    // Create falling petals around the rose
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2 + rand() * 0.5;
+      const radius = 0.8 + rand() * 1.2;
+
+      configs.push({
+        startPosition: [
+          Math.cos(angle) * radius,
+          3 + rand() * 1.5, // Start above the rose
+          Math.sin(angle) * radius,
+        ],
+        rotation: [rand() * Math.PI, rand() * Math.PI * 2, rand() * Math.PI],
+        scale: 0.3 + rand() * 0.25,
+        geometryIndex: Math.floor(rand() * 3), // Use different petal shapes
+        materialIndex: Math.floor(rand() * petalMaterials.length),
+        fallSpeed: 0.3 + rand() * 0.2,
+        swaySpeed: 1.5 + rand() * 1,
+        swayAmount: 0.15 + rand() * 0.15,
+        spinSpeed: 0.5 + rand() * 0.5,
+        delay: rand() * 8, // Stagger the falls
+      });
+    }
+
+    return configs;
+  }, []);
+
+  return (
+    <group>
+      {petals.map((petal, i) => (
+        <FallingPetal key={`falling-${i}`} config={petal} />
+      ))}
+    </group>
+  );
+}
+
 function RoseBud() {
   const groupRef = useRef<THREE.Group>(null);
 
   const petals = useMemo(() => {
     const petalConfigs: PetalConfig[] = [];
     const rand = mulberry32(23);
-    const petalCount = 60;
+    const petalCount = 28; // Reduced for cleaner inner ring detail
     const goldenAngle = Math.PI * (3 - Math.sqrt(5)) * 1.12;
     const up = new THREE.Vector3(0, 1, 0);
     const down = new THREE.Vector3(0, -1, 0);
@@ -766,6 +880,7 @@ export default function GlassRose() {
     <group ref={groupRef}>
       <RoseBud />
       <StemAssembly />
+      <FallingPetals />
     </group>
   );
 }

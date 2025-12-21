@@ -31,7 +31,7 @@
 }
 
 .message h1 {
-  font-family: 'Georgia', serif;
+  font-family: "Georgia", serif;
   font-size: 2.5rem;
   font-weight: 300;
   letter-spacing: 0.3em;
@@ -42,7 +42,7 @@
 }
 
 .message p {
-  font-family: 'Georgia', serif;
+  font-family: "Georgia", serif;
   font-size: 1rem;
   font-weight: 300;
   letter-spacing: 0.15em;
@@ -64,21 +64,26 @@
 }
 
 @keyframes glow {
-  0%, 100% {
+  0%,
+  100% {
     text-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
   }
   50% {
-    text-shadow: 0 0 30px rgba(255, 105, 180, 0.8), 0 0 40px rgba(255, 182, 193, 0.4);
+    text-shadow:
+      0 0 30px rgba(255, 105, 180, 0.8),
+      0 0 40px rgba(255, 182, 193, 0.4);
   }
 }
 
 .message h1 {
-  animation: fadeIn 2s ease-out, glow 4s ease-in-out infinite;
+  animation:
+    fadeIn 2s ease-out,
+    glow 4s ease-in-out infinite;
 }
 
 @media (max-width: 768px) {
   .message {
-    bottom: 24px;
+    bottom: 96px;
     padding: 0 12px;
   }
 
@@ -97,8 +102,15 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  background: radial-gradient(circle at center, rgba(255, 210, 150, 0.12), rgba(10, 10, 21, 0.5) 60%, rgba(10, 10, 21, 0.8) 100%);
-  transition: opacity 0.4s ease, visibility 0.4s ease;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 210, 150, 0.12),
+    rgba(10, 10, 21, 0.5) 60%,
+    rgba(10, 10, 21, 0.8) 100%
+  );
+  transition:
+    opacity 0.4s ease,
+    visibility 0.4s ease;
 }
 
 .sun-loader-overlay.is-active {
@@ -135,9 +147,16 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #fff8e7 0%, #ffdd77 55%, #ffb347 100%);
+  background: radial-gradient(
+    circle at 30% 30%,
+    #fff8e7 0%,
+    #ffdd77 55%,
+    #ffb347 100%
+  );
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 16px rgba(255, 179, 71, 0.65), 0 0 32px rgba(255, 140, 66, 0.4);
+  box-shadow:
+    0 0 16px rgba(255, 179, 71, 0.65),
+    0 0 32px rgba(255, 140, 66, 0.4);
   animation: sun-pulse 2.2s ease-in-out infinite;
 }
 
@@ -164,7 +183,8 @@
 }
 
 @keyframes sun-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(0.95);
   }
   50% {
@@ -173,7 +193,8 @@
 }
 
 @keyframes sun-core {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(0.9);
     opacity: 0.85;
   }
