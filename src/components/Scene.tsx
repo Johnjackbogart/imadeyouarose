@@ -1411,7 +1411,7 @@ function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
     <Clouds material={THREE.MeshBasicMaterial} frustumCulled={false}>
       {/* Clouds near sun - warm golden/orange */}
       <Cloud
-        position={[-20, 12, -25]}
+        position={[-20, 3, -25]}
         speed={0.1}
         opacity={0.5}
         bounds={[15, 3, 8]}
@@ -1419,7 +1419,7 @@ function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
         color="#ffcc88"
       />
       <Cloud
-        position={[-15, 15, -20]}
+        position={[-15, 5, -20]}
         speed={0.15}
         opacity={0.4}
         bounds={[12, 2, 6]}
@@ -1429,7 +1429,7 @@ function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
       
       {/* Mid-sky clouds - pink/purple tones */}
       <Cloud
-        position={[15, 14, -15]}
+        position={[15, 4, -15]}
         speed={0.12}
         opacity={0.45}
         bounds={[10, 2.5, 5]}
@@ -1437,7 +1437,7 @@ function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
         color="#ff99aa"
       />
       <Cloud
-        position={[-10, 18, 10]}
+        position={[-10, 6, 10]}
         speed={0.08}
         opacity={0.35}
         bounds={[14, 3, 7]}
@@ -1449,7 +1449,7 @@ function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
         <>
           {/* Additional clouds for desktop */}
           <Cloud
-            position={[20, 10, -30]}
+            position={[20, 2, -30]}
             speed={0.1}
             opacity={0.5}
             bounds={[18, 4, 10]}
@@ -1457,7 +1457,7 @@ function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
             color="#ffbb77"
           />
           <Cloud
-            position={[0, 20, -25]}
+            position={[0, 7, -25]}
             speed={0.06}
             opacity={0.3}
             bounds={[20, 3, 10]}
@@ -1465,7 +1465,7 @@ function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
             color="#ddaacc"
           />
           <Cloud
-            position={[-25, 16, 5]}
+            position={[-25, 4, 5]}
             speed={0.09}
             opacity={0.4}
             bounds={[12, 2, 6]}
@@ -1473,7 +1473,7 @@ function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
             color="#ff8899"
           />
           <Cloud
-            position={[25, 12, 15]}
+            position={[25, 3, 15]}
             speed={0.11}
             opacity={0.35}
             bounds={[10, 2, 5]}
