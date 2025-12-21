@@ -1,0 +1,62 @@
+.app {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.message {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: white;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.message h1 {
+  font-family: 'Georgia', serif;
+  font-size: 2.5rem;
+  font-weight: 300;
+  letter-spacing: 0.3em;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
+  animation: fadeIn 2s ease-out;
+}
+
+.message p {
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  margin-top: 10px;
+  opacity: 0.8;
+  text-shadow: 0 0 10px rgba(255, 182, 193, 0.5);
+  animation: fadeIn 3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(255, 105, 180, 0.8), 0 0 40px rgba(255, 182, 193, 0.4);
+  }
+}
+
+.message h1 {
+  animation: fadeIn 2s ease-out, glow 4s ease-in-out infinite;
+}
