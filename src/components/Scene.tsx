@@ -12,12 +12,13 @@ import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import GlassRose from "./GlassRose";
+import IridescentRose from "./IridescentRose";
 import RealisticRose from "./RealisticRose";
 import SpiralRose from "./SpiralRose";
 import Sparkles from "./Sparkles";
 import MysticalSmoke from "./MysticalSmoke";
 
-type RoseType = "glass" | "realistic" | "spiral";
+type RoseType = "glass" | "realistic" | "spiral" | "iridescent";
 
 type SceneProps = {
   isMobile?: boolean;
@@ -1519,6 +1520,7 @@ function RoseComponent({ roseType }: { roseType: RoseType }) {
       {roseType === "realistic" && <RealisticRose />}
       {roseType === "spiral" && <SpiralRose />}
       {roseType === "glass" && <GlassRose />}
+      {roseType === "iridescent" && <IridescentRose />}
     </group>
   );
 }
@@ -1634,8 +1636,8 @@ export default function Scene({ isMobile = false, roseType = "glass" }: ScenePro
 
         <Float
           speed={1}
-          rotationIntensity={0.2}
-          floatIntensity={0.3}
+          rotationIntensity={roseType === "iridescent" ? 0 : 0.2}
+          floatIntensity={roseType === "iridescent" ? 0.18 : 0.3}
           floatingRange={[-0.05, 0.05]}
         >
           <RoseComponent roseType={roseType} />

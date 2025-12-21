@@ -13,7 +13,7 @@ function App() {
   });
   const [canvasReady, setCanvasReady] = useState(false);
   const [sceneVisible, setSceneVisible] = useState(false);
-  const [roseType, setRoseType] = useState<"glass" | "realistic" | "spiral">("spiral");
+  const [roseType, setRoseType] = useState<"glass" | "realistic" | "spiral" | "iridescent">("spiral");
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -59,19 +59,18 @@ function App() {
         <h1>i made this for you</h1>
       </div>
       {sceneVisible && (
-        <button
-          className="rose-toggle"
-          onClick={() => {
-            const types: ("glass" | "realistic" | "spiral")[] = ["glass", "realistic", "spiral"];
-            const currentIndex = types.indexOf(roseType);
-            const nextIndex = (currentIndex + 1) % types.length;
-            setRoseType(types[nextIndex]);
-          }}
+        <select
+          className="rose-selector"
+          value={roseType}
+          onChange={(e) =>
+            setRoseType(e.target.value as "glass" | "realistic" | "spiral" | "iridescent")
+          }
         >
-          {roseType === "glass" && "Realistic Rose →"}
-          {roseType === "realistic" && "Spiral Rose →"}
-          {roseType === "spiral" && "Glass Rose →"}
-        </button>
+          <option value="spiral">Spiral Rose</option>
+          <option value="realistic">Realistic Rose</option>
+          <option value="glass">Glass Rose</option>
+          <option value="iridescent">Iridescent Rose</option>
+        </select>
       )}
     </div>
   );
