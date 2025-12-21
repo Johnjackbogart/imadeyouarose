@@ -4,6 +4,25 @@ import Scene from "./components/Scene";
 import SunLoader from "./components/SunLoader";
 import "./App.css";
 
+type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
+
+const VALID_ROSES: RoseType[] = ["glass", "realistic", "spiral", "iridescent", "storm"];
+
+function getRoseFromURL(): RoseType {
+  const params = new URLSearchParams(window.location.search);
+  const rose = params.get("rose");
+  if (rose && VALID_ROSES.includes(rose as RoseType)) {
+    return rose as RoseType;
+  }
+  return "spiral";
+}
+
+function setRoseInURL(rose: RoseType) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("rose", rose);
+  window.history.replaceState({}, "", url.toString());
+}
+
 function App() {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") {
@@ -13,7 +32,7 @@ function App() {
   });
   const [canvasReady, setCanvasReady] = useState(false);
   const [sceneVisible, setSceneVisible] = useState(false);
-  const [roseType, setRoseType] = useState<"glass" | "realistic" | "spiral" | "iridescent">("spiral");
+  const [roseType, setRoseType] = useState<RoseType>(getRoseFromURL);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -62,14 +81,17 @@ function App() {
         <select
           className="rose-selector"
           value={roseType}
-          onChange={(e) =>
-            setRoseType(e.target.value as "glass" | "realistic" | "spiral" | "iridescent")
-          }
+          onChange={(e) => {
+            const newRose = e.target.value as RoseType;
+            setRoseType(newRose);
+            setRoseInURL(newRose);
+          }}
         >
           <option value="spiral">Spiral Rose</option>
           <option value="realistic">Realistic Rose</option>
           <option value="glass">Glass Rose</option>
           <option value="iridescent">Iridescent Rose</option>
+          <option value="storm">Storm Rose</option>
         </select>
       )}
     </div>
