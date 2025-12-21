@@ -16,33 +16,46 @@ import MysticalSmoke from "./MysticalSmoke";
 function Lights() {
   return (
     <>
-      <ambientLight intensity={0.35} />
+      {/* Warm ambient for sunset */}
+      <ambientLight intensity={0.3} color="#ffccaa" />
+
+      {/* Sky hemisphere - warm sunset tones */}
       <hemisphereLight
-        intensity={0.55}
-        color="#cfead4"
-        groundColor="#2a3d2b"
+        intensity={0.6}
+        color="#ff7744"
+        groundColor="#442244"
       />
+
+      {/* Main sun directional light - coming from sun position */}
       <directionalLight
-        position={[6, 7, 4]}
-        intensity={1.1}
-        color="#fff2d6"
+        position={[-20, 5, -25]}
+        intensity={1.5}
+        color="#ffaa55"
       />
+
+      {/* Warm rim light */}
       <spotLight
-        position={[5, 5, 5]}
-        angle={0.3}
+        position={[-10, 8, -10]}
+        angle={0.5}
         penumbra={1}
-        intensity={1.6}
-        color="#fff5ef"
+        intensity={1.2}
+        color="#ff8844"
       />
+
+      {/* Cool fill light from opposite side */}
       <spotLight
-        position={[-5, 3, -5]}
-        angle={0.4}
+        position={[8, 4, 8]}
+        angle={0.6}
         penumbra={1}
-        intensity={1.1}
-        color="#f2e5dc"
+        intensity={0.6}
+        color="#8866aa"
       />
-      <pointLight position={[0, 3, 0]} intensity={0.6} color="#ffd7c2" />
-      <pointLight position={[0, -2, 2]} intensity={0.35} color="#dbe5ff" />
+
+      {/* Accent light on the rose */}
+      <pointLight position={[0, 3, 0]} intensity={0.8} color="#ffbb77" />
+
+      {/* Cool shadow fill */}
+      <pointLight position={[3, -1, 3]} intensity={0.25} color="#6644aa" />
     </>
   );
 }
@@ -263,173 +276,108 @@ function LowPolyRocks() {
   );
 }
 
-function AnimatedGoldRing({
-  radius,
-  tubeRadius,
-  y,
-  speed,
-  direction = 1,
-  segments = 64
-}: {
-  radius: number;
-  tubeRadius: number;
-  y: number;
-  speed: number;
-  direction?: number;
-  segments?: number;
-}) {
-  const ringRef = useRef<THREE.Mesh>(null);
+// Low poly mountain range encircling the scene
+function LowPolyMountains() {
+  const mountains = useMemo(() => {
+    const rand = createSeededRandom(42);
+    const result: {
+      position: readonly [number, number, number];
+      scale: readonly [number, number, number];
+      rotation: number;
+      color: string;
+      peaks: number;
+    }[] = [];
 
-  useFrame((state) => {
-    if (ringRef.current) {
-      ringRef.current.rotation.z = state.clock.elapsedTime * speed * direction;
-      // Subtle pulsing glow effect
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 2 + y) * 0.02;
-      ringRef.current.scale.set(scale, scale, 1);
+    // Create mountain range in a circle around the scene
+    const mountainCount = 24;
+    for (let i = 0; i < mountainCount; i++) {
+      const angle = (i / mountainCount) * Math.PI * 2;
+      const radius = 18 + rand() * 4;
+      const height = 4 + rand() * 6;
+      const width = 3 + rand() * 3;
+
+      // Vary colors from deep purple to warm orange based on position relative to sun
+      const sunAngle = Math.PI * 0.75; // Sun position angle
+      const angleDiff = Math.abs(angle - sunAngle);
+      const sunInfluence = Math.max(0, 1 - angleDiff / Math.PI);
+
+      // Blend between shadow colors and sun-lit colors
+      const hue = 260 - sunInfluence * 40; // Purple to orange
+      const sat = 25 + sunInfluence * 20;
+      const light = 20 + sunInfluence * 25;
+
+      result.push({
+        position: [Math.cos(angle) * radius, -2.5, Math.sin(angle) * radius] as const,
+        scale: [width, height, width * 0.8] as const,
+        rotation: angle + (rand() - 0.5) * 0.3,
+        color: `hsl(${hue}, ${sat}%, ${light}%)`,
+        peaks: 3 + Math.floor(rand() * 3),
+      });
     }
-  });
 
-  return (
-    <mesh ref={ringRef} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
-      <torusGeometry args={[radius, tubeRadius, 16, segments]} />
-      <meshStandardMaterial
-        color="#ffd700"
-        metalness={1}
-        roughness={0.12}
-        emissive="#daa520"
-        emissiveIntensity={0.15}
-      />
-    </mesh>
-  );
-}
+    // Add some closer, smaller foothills
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2 + 0.2;
+      const radius = 12 + rand() * 3;
+      const height = 2 + rand() * 2.5;
+      const width = 2 + rand() * 2;
 
-function OrnateGoldBand({
-  radius,
-  y,
-  count,
-  speed
-}: {
-  radius: number;
-  y: number;
-  count: number;
-  speed: number;
-}) {
-  const groupRef = useRef<THREE.Group>(null);
+      const sunAngle = Math.PI * 0.75;
+      const angleDiff = Math.abs(angle - sunAngle);
+      const sunInfluence = Math.max(0, 1 - angleDiff / Math.PI);
 
-  const ornaments = useMemo(() => {
-    return Array.from({ length: count }, (_, i) => {
-      const angle = (i / count) * Math.PI * 2;
-      return {
-        x: Math.cos(angle) * radius,
-        z: Math.sin(angle) * radius,
-        rotY: angle,
-      };
-    });
-  }, [count, radius]);
+      const hue = 250 - sunInfluence * 30;
+      const sat = 20 + sunInfluence * 15;
+      const light = 25 + sunInfluence * 20;
 
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * speed;
+      result.push({
+        position: [Math.cos(angle) * radius, -2.5, Math.sin(angle) * radius] as const,
+        scale: [width, height, width * 0.7] as const,
+        rotation: angle + rand() * 0.5,
+        color: `hsl(${hue}, ${sat}%, ${light}%)`,
+        peaks: 2 + Math.floor(rand() * 2),
+      });
     }
-  });
+
+    return result;
+  }, []);
 
   return (
-    <group ref={groupRef} position={[0, y, 0]}>
-      {ornaments.map((pos, i) => (
-        <mesh
-          key={i}
-          position={[pos.x, 0, pos.z]}
-          rotation={[0, pos.rotY + Math.PI / 2, 0]}
-        >
-          <torusKnotGeometry args={[0.04, 0.015, 32, 8, 2, 3]} />
-          <meshStandardMaterial
-            color="#ffd700"
-            metalness={1}
-            roughness={0.1}
-            emissive="#daa520"
-            emissiveIntensity={0.2}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function IvoryEngraving({
-  radius,
-  y,
-  count,
-  scale = 1
-}: {
-  radius: number;
-  y: number;
-  count: number;
-  scale?: number;
-}) {
-  const engravings = useMemo(() => {
-    return Array.from({ length: count }, (_, i) => {
-      const angle = (i / count) * Math.PI * 2;
-      return {
-        x: Math.cos(angle) * radius,
-        z: Math.sin(angle) * radius,
-        rotY: angle,
-      };
-    });
-  }, [count, radius]);
-
-  return (
-    <group position={[0, y, 0]}>
-      {engravings.map((pos, i) => (
+    <group>
+      {mountains.map((mountain, index) => (
         <group
-          key={i}
-          position={[pos.x, 0, pos.z]}
-          rotation={[0, pos.rotY + Math.PI / 2, 0]}
-          scale={scale}
+          key={`mountain-${index}`}
+          position={mountain.position}
+          rotation={[0, mountain.rotation, 0]}
+          scale={mountain.scale}
         >
-          {/* Fleur-de-lis style engraving */}
-          <mesh position={[0, 0, 0.01]}>
-            <circleGeometry args={[0.06, 16]} />
+          {/* Main peak */}
+          <mesh position={[0, 0.5, 0]}>
+            <coneGeometry args={[1, 1, 5 + mountain.peaks, 1]} />
             <meshStandardMaterial
-              color="#fffff0"
-              metalness={0.15}
-              roughness={0.35}
-              emissive="#f5f5dc"
-              emissiveIntensity={0.08}
+              color={mountain.color}
+              roughness={0.9}
+              metalness={0.05}
+              flatShading
             />
           </mesh>
-          {/* Inner detail */}
-          <mesh position={[0, 0, 0.015]}>
-            <ringGeometry args={[0.025, 0.04, 16]} />
+          {/* Secondary peaks */}
+          <mesh position={[-0.4, 0.35, 0.2]} scale={[0.6, 0.7, 0.6]}>
+            <coneGeometry args={[1, 1, 4, 1]} />
             <meshStandardMaterial
-              color="#ffd700"
-              metalness={1}
-              roughness={0.15}
+              color={mountain.color}
+              roughness={0.9}
+              metalness={0.05}
+              flatShading
             />
           </mesh>
-          {/* Top flourish */}
-          <mesh position={[0, 0.05, 0.01]} rotation={[0, 0, 0]}>
-            <coneGeometry args={[0.025, 0.06, 8]} />
+          <mesh position={[0.35, 0.3, -0.15]} scale={[0.5, 0.6, 0.5]}>
+            <coneGeometry args={[1, 1, 4, 1]} />
             <meshStandardMaterial
-              color="#fffff0"
-              metalness={0.15}
-              roughness={0.35}
-            />
-          </mesh>
-          {/* Side flourishes */}
-          <mesh position={[-0.035, 0.02, 0.01]} rotation={[0, 0, Math.PI / 4]}>
-            <coneGeometry args={[0.018, 0.045, 6]} />
-            <meshStandardMaterial
-              color="#fffff0"
-              metalness={0.15}
-              roughness={0.35}
-            />
-          </mesh>
-          <mesh position={[0.035, 0.02, 0.01]} rotation={[0, 0, -Math.PI / 4]}>
-            <coneGeometry args={[0.018, 0.045, 6]} />
-            <meshStandardMaterial
-              color="#fffff0"
-              metalness={0.15}
-              roughness={0.35}
+              color={mountain.color}
+              roughness={0.9}
+              metalness={0.05}
+              flatShading
             />
           </mesh>
         </group>
@@ -438,44 +386,182 @@ function IvoryEngraving({
   );
 }
 
-function FloatingGoldOrbs({ y }: { y: number }) {
-  const groupRef = useRef<THREE.Group>(null);
+// Low poly sunset sky made of colorful geometric shapes
+function LowPolySunsetShapes() {
+  const shapes = useMemo(() => {
+    const rand = createSeededRandom(99);
+    const result: {
+      position: readonly [number, number, number];
+      rotation: readonly [number, number, number];
+      scale: number;
+      color: string;
+      geometry: 'tetra' | 'octa' | 'icosa' | 'dodeca' | 'box';
+      opacity: number;
+    }[] = [];
 
-  const orbs = useMemo(() => {
-    return Array.from({ length: 8 }, (_, i) => {
-      const angle = (i / 8) * Math.PI * 2;
-      return {
-        angle,
-        radius: 2.1,
-        phase: i * 0.5,
-      };
-    });
+    // Color palette for sunset
+    const colors = {
+      yellow: ['#ffeb3b', '#ffc107', '#ff9800', '#ffe082', '#fff59d'],
+      orange: ['#ff5722', '#ff7043', '#ff8a65', '#ffab91', '#e65100'],
+      pink: ['#e91e63', '#f06292', '#ff80ab', '#ff4081', '#c2185b'],
+      red: ['#f44336', '#ef5350', '#e53935', '#ff1744', '#d32f2f'],
+      blue: ['#2196f3', '#64b5f6', '#1976d2', '#0d47a1', '#5c6bc0'],
+      purple: ['#9c27b0', '#ba68c8', '#7b1fa2', '#6a1b9a', '#8e24aa'],
+    };
+
+    const allColors = [
+      ...colors.yellow,
+      ...colors.orange,
+      ...colors.pink,
+      ...colors.red,
+      ...colors.blue,
+      ...colors.purple,
+    ];
+
+    const geometries: ('tetra' | 'octa' | 'icosa' | 'dodeca' | 'box')[] =
+      ['tetra', 'octa', 'icosa', 'dodeca', 'box'];
+
+    // Upper sky - blues and purples (top dome)
+    for (let i = 0; i < 25; i++) {
+      const angle = rand() * Math.PI * 2;
+      const radius = 30 + rand() * 20;
+      const height = 20 + rand() * 25;
+      const blueColors = [...colors.blue, ...colors.purple];
+
+      result.push({
+        position: [
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius,
+        ] as const,
+        rotation: [rand() * Math.PI, rand() * Math.PI, rand() * Math.PI] as const,
+        scale: 4 + rand() * 8,
+        color: blueColors[Math.floor(rand() * blueColors.length)],
+        geometry: geometries[Math.floor(rand() * geometries.length)],
+        opacity: 0.7 + rand() * 0.3,
+      });
+    }
+
+    // Mid sky - pinks and light blues
+    for (let i = 0; i < 30; i++) {
+      const angle = rand() * Math.PI * 2;
+      const radius = 28 + rand() * 22;
+      const height = 8 + rand() * 15;
+      const midColors = [...colors.pink, ...colors.blue.slice(0, 2)];
+
+      result.push({
+        position: [
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius,
+        ] as const,
+        rotation: [rand() * Math.PI, rand() * Math.PI, rand() * Math.PI] as const,
+        scale: 3 + rand() * 7,
+        color: midColors[Math.floor(rand() * midColors.length)],
+        geometry: geometries[Math.floor(rand() * geometries.length)],
+        opacity: 0.75 + rand() * 0.25,
+      });
+    }
+
+    // Horizon level - yellows, oranges, reds (sunset band)
+    for (let i = 0; i < 45; i++) {
+      const angle = rand() * Math.PI * 2;
+      const radius = 25 + rand() * 25;
+      const height = -2 + rand() * 12;
+      const warmColors = [...colors.yellow, ...colors.orange, ...colors.red];
+
+      result.push({
+        position: [
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius,
+        ] as const,
+        rotation: [rand() * Math.PI, rand() * Math.PI, rand() * Math.PI] as const,
+        scale: 3 + rand() * 6,
+        color: warmColors[Math.floor(rand() * warmColors.length)],
+        geometry: geometries[Math.floor(rand() * geometries.length)],
+        opacity: 0.8 + rand() * 0.2,
+      });
+    }
+
+    // Large background shapes for depth
+    for (let i = 0; i < 15; i++) {
+      const angle = rand() * Math.PI * 2;
+      const radius = 45 + rand() * 15;
+      const height = rand() * 30;
+
+      result.push({
+        position: [
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius,
+        ] as const,
+        rotation: [rand() * Math.PI, rand() * Math.PI, rand() * Math.PI] as const,
+        scale: 10 + rand() * 15,
+        color: allColors[Math.floor(rand() * allColors.length)],
+        geometry: geometries[Math.floor(rand() * geometries.length)],
+        opacity: 0.4 + rand() * 0.3,
+      });
+    }
+
+    // Sun direction cluster - extra warm shapes
+    const sunAngle = Math.PI * 0.75;
+    for (let i = 0; i < 20; i++) {
+      const angleOffset = (rand() - 0.5) * 0.8;
+      const angle = sunAngle + angleOffset;
+      const radius = 20 + rand() * 20;
+      const height = 2 + rand() * 10;
+      const sunColors = [...colors.yellow, ...colors.orange];
+
+      result.push({
+        position: [
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius,
+        ] as const,
+        rotation: [rand() * Math.PI, rand() * Math.PI, rand() * Math.PI] as const,
+        scale: 2 + rand() * 5,
+        color: sunColors[Math.floor(rand() * sunColors.length)],
+        geometry: geometries[Math.floor(rand() * geometries.length)],
+        opacity: 0.85 + rand() * 0.15,
+      });
+    }
+
+    return result;
   }, []);
 
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.3;
+  const getGeometry = (type: string, key: number) => {
+    switch (type) {
+      case 'tetra':
+        return <tetrahedronGeometry key={key} args={[1, 0]} />;
+      case 'octa':
+        return <octahedronGeometry key={key} args={[1, 0]} />;
+      case 'icosa':
+        return <icosahedronGeometry key={key} args={[1, 0]} />;
+      case 'dodeca':
+        return <dodecahedronGeometry key={key} args={[1, 0]} />;
+      case 'box':
+        return <boxGeometry key={key} args={[1, 1, 1]} />;
+      default:
+        return <octahedronGeometry key={key} args={[1, 0]} />;
     }
-  });
+  };
 
   return (
-    <group ref={groupRef} position={[0, y, 0]}>
-      {orbs.map((orb, i) => (
+    <group>
+      {shapes.map((shape, index) => (
         <mesh
-          key={i}
-          position={[
-            Math.cos(orb.angle) * orb.radius,
-            0,
-            Math.sin(orb.angle) * orb.radius,
-          ]}
+          key={`sunset-shape-${index}`}
+          position={shape.position}
+          rotation={shape.rotation}
+          scale={shape.scale}
         >
-          <sphereGeometry args={[0.035, 16, 16]} />
-          <meshStandardMaterial
-            color="#ffd700"
-            metalness={1}
-            roughness={0.1}
-            emissive="#daa520"
-            emissiveIntensity={0.3}
+          {getGeometry(shape.geometry, index)}
+          <meshBasicMaterial
+            color={shape.color}
+            transparent
+            opacity={shape.opacity}
+            side={THREE.DoubleSide}
           />
         </mesh>
       ))}
@@ -483,117 +569,183 @@ function FloatingGoldOrbs({ y }: { y: number }) {
   );
 }
 
-function Base() {
-  const baseGroupRef = useRef<THREE.Group>(null);
+// Low poly sun with glow
+function LowPolySun() {
+  const sunPosition: [number, number, number] = [-25, 4, -30];
+
+  // Create sun rays geometry
+  const raysGeometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const positions: number[] = [];
+    const colors: number[] = [];
+    const rayCount = 12;
+
+    const centerColor = new THREE.Color("#fff5e6");
+    const edgeColor = new THREE.Color("#ff8c42");
+
+    for (let i = 0; i < rayCount; i++) {
+      const angle = (i / rayCount) * Math.PI * 2;
+      const innerRadius = 2.5;
+      const outerRadius = 5 + Math.sin(i * 3) * 1.5;
+
+      // Triangle ray
+      positions.push(0, 0, 0);
+      positions.push(
+        Math.cos(angle - 0.1) * innerRadius,
+        Math.sin(angle - 0.1) * innerRadius,
+        0
+      );
+      positions.push(
+        Math.cos(angle) * outerRadius,
+        Math.sin(angle) * outerRadius,
+        0
+      );
+
+      positions.push(0, 0, 0);
+      positions.push(
+        Math.cos(angle) * outerRadius,
+        Math.sin(angle) * outerRadius,
+        0
+      );
+      positions.push(
+        Math.cos(angle + 0.1) * innerRadius,
+        Math.sin(angle + 0.1) * innerRadius,
+        0
+      );
+
+      // Colors for each vertex
+      for (let j = 0; j < 2; j++) {
+        colors.push(centerColor.r, centerColor.g, centerColor.b);
+        colors.push(edgeColor.r, edgeColor.g, edgeColor.b);
+        colors.push(edgeColor.r * 0.5, edgeColor.g * 0.5, edgeColor.b * 0.5);
+      }
+    }
+
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+
+    return geo;
+  }, []);
 
   return (
-    <group ref={baseGroupRef} position={[0, -1.5, 0]}>
-      {/* Bottom tier - widest */}
-      <mesh position={[0, -0.35, 0]}>
-        <cylinderGeometry args={[2.2, 2.4, 0.2, 64]} />
-        <primitive object={baseMaterial} attach="material" />
-      </mesh>
-
-      {/* Bottom gold ring - largest, slow rotation */}
-      <AnimatedGoldRing radius={2.42} tubeRadius={0.06} y={-0.23} speed={0.15} direction={1} />
-
-      {/* Ivory engravings on bottom tier */}
-      <IvoryEngraving radius={2.3} y={-0.35} count={12} scale={1.2} />
-
-      {/* Ornate gold band rotating around bottom */}
-      <OrnateGoldBand radius={2.35} y={-0.45} count={8} speed={0.2} />
-
-      {/* Middle tier */}
-      <mesh position={[0, -0.1, 0]}>
-        <cylinderGeometry args={[1.9, 2.1, 0.25, 64]} />
-        <primitive object={baseMaterial} attach="material" />
-      </mesh>
-
-      {/* Middle gold rings - counter rotating */}
-      <AnimatedGoldRing radius={2.12} tubeRadius={0.05} y={0.03} speed={0.25} direction={-1} />
-      <AnimatedGoldRing radius={1.88} tubeRadius={0.04} y={0.03} speed={0.35} direction={1} />
-
-      {/* Ivory engravings on middle tier */}
-      <IvoryEngraving radius={2.0} y={-0.1} count={10} scale={1} />
-
-      {/* Upper tier */}
-      <mesh position={[0, 0.1, 0]}>
-        <cylinderGeometry args={[1.7, 1.85, 0.15, 64]} />
-        <primitive object={baseMaterial} attach="material" />
-      </mesh>
-
-      {/* Upper gold ring trio */}
-      <AnimatedGoldRing radius={1.87} tubeRadius={0.045} y={0.18} speed={0.4} direction={1} />
-      <AnimatedGoldRing radius={1.72} tubeRadius={0.035} y={0.18} speed={0.5} direction={-1} />
-      <AnimatedGoldRing radius={1.58} tubeRadius={0.025} y={0.18} speed={0.6} direction={1} />
-
-      {/* Ornate gold band on upper tier */}
-      <OrnateGoldBand radius={1.78} y={0.1} count={6} speed={-0.3} />
-
-      {/* Top platform with beveled edge */}
-      <mesh position={[0, 0.22, 0]}>
-        <cylinderGeometry args={[1.55, 1.65, 0.08, 64]} />
-        <primitive object={baseMaterial} attach="material" />
-      </mesh>
-
-      {/* Top crown gold ring */}
-      <AnimatedGoldRing radius={1.57} tubeRadius={0.05} y={0.27} speed={0.2} direction={-1} />
-
-      {/* Floating gold orbs around the base */}
-      <FloatingGoldOrbs y={-0.3} />
-
-      {/* Inner platform for rose with gold inlay */}
-      <mesh position={[0, 0.28, 0]}>
-        <cylinderGeometry args={[1.45, 1.5, 0.06, 64]} />
-        <meshStandardMaterial
-          color="#1a1a2e"
-          metalness={0.85}
-          roughness={0.12}
-          emissive="#0a0a15"
-          emissiveIntensity={0.1}
+    <group position={sunPosition}>
+      {/* Sun glow (outer) */}
+      <mesh>
+        <circleGeometry args={[4, 16]} />
+        <meshBasicMaterial
+          color="#ffb347"
+          transparent
+          opacity={0.3}
         />
       </mesh>
 
-      {/* Decorative gold center ring */}
-      <mesh position={[0, 0.32, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.2, 0.02, 12, 48]} />
-        <meshStandardMaterial
-          color="#ffd700"
-          metalness={1}
-          roughness={0.1}
-          emissive="#b8860b"
-          emissiveIntensity={0.2}
+      {/* Sun rays */}
+      <mesh geometry={raysGeometry} rotation={[0, 0, Math.PI / 12]}>
+        <meshBasicMaterial
+          vertexColors
+          transparent
+          opacity={0.4}
+          side={THREE.DoubleSide}
         />
       </mesh>
 
-      {/* Inner decorative ivory ring pattern */}
-      <IvoryEngraving radius={1.35} y={0.28} count={8} scale={0.8} />
+      {/* Main sun disc */}
+      <mesh position={[0, 0, 0.1]}>
+        <circleGeometry args={[2.2, 8]} />
+        <meshBasicMaterial color="#ffdd77" />
+      </mesh>
 
-      {/* Central gold filigree details */}
-      {Array.from({ length: 16 }).map((_, i) => {
-        const angle = (i / 16) * Math.PI * 2;
-        const innerRadius = 0.8;
-        return (
-          <mesh
-            key={`filigree-${i}`}
-            position={[
-              Math.cos(angle) * innerRadius,
-              0.3,
-              Math.sin(angle) * innerRadius,
-            ]}
-            rotation={[Math.PI / 2, 0, angle]}
-          >
-            <torusGeometry args={[0.08, 0.008, 8, 16]} />
+      {/* Inner bright core */}
+      <mesh position={[0, 0.3, 0.2]}>
+        <circleGeometry args={[1.4, 6]} />
+        <meshBasicMaterial color="#fff8e7" />
+      </mesh>
+
+      {/* Sun point light for scene illumination */}
+      <pointLight
+        position={[0, 0, 5]}
+        intensity={2}
+        color="#ffaa55"
+        distance={60}
+      />
+    </group>
+  );
+}
+
+// Sunset-colored clouds
+function SunsetClouds() {
+  const clouds = useMemo(() => {
+    const rand = createSeededRandom(77);
+    const result: {
+      position: readonly [number, number, number];
+      scale: number;
+      color: string;
+    }[] = [];
+
+    for (let i = 0; i < 15; i++) {
+      const angle = rand() * Math.PI * 2;
+      const radius = 20 + rand() * 20;
+      const height = 8 + rand() * 12;
+
+      // Warmer colors near the sun
+      const sunAngle = Math.PI * 0.75 + Math.PI; // Opposite of sun direction in sky
+      const angleDiff = Math.abs(angle - sunAngle);
+      const warmth = Math.max(0, 1 - angleDiff / Math.PI);
+
+      const hue = 350 + warmth * 40; // Pink to orange
+      const sat = 60 + warmth * 30;
+      const light = 70 + warmth * 20;
+
+      result.push({
+        position: [Math.cos(angle) * radius, height, Math.sin(angle) * radius] as const,
+        scale: 2 + rand() * 4,
+        color: `hsl(${hue % 360}, ${sat}%, ${light}%)`,
+      });
+    }
+
+    return result;
+  }, []);
+
+  return (
+    <group>
+      {clouds.map((cloud, index) => (
+        <group key={`cloud-${index}`} position={cloud.position}>
+          {/* Cloud puffs - low poly style */}
+          <mesh scale={cloud.scale}>
+            <dodecahedronGeometry args={[1, 0]} />
             <meshStandardMaterial
-              color="#ffd700"
-              metalness={1}
-              roughness={0.15}
-              emissive="#daa520"
-              emissiveIntensity={0.15}
+              color={cloud.color}
+              roughness={1}
+              metalness={0}
+              flatShading
+              transparent
+              opacity={0.85}
             />
           </mesh>
-        );
-      })}
+          <mesh position={[1.2, -0.2, 0.3]} scale={cloud.scale * 0.7}>
+            <dodecahedronGeometry args={[1, 0]} />
+            <meshStandardMaterial
+              color={cloud.color}
+              roughness={1}
+              metalness={0}
+              flatShading
+              transparent
+              opacity={0.85}
+            />
+          </mesh>
+          <mesh position={[-0.9, 0.1, -0.2]} scale={cloud.scale * 0.6}>
+            <dodecahedronGeometry args={[1, 0]} />
+            <meshStandardMaterial
+              color={cloud.color}
+              roughness={1}
+              metalness={0}
+              flatShading
+              transparent
+              opacity={0.85}
+            />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -601,10 +753,23 @@ function Base() {
 export default function Scene() {
   return (
     <>
-      <color attach="background" args={["#c7e6cf"]} />
-      <fog attach="fog" args={["#b9ddc4", 8, 20]} />
+      {/* Light blue sky background */}
+      <color attach="background" args={["#87CEEB"]} />
+
+      {/* Low poly sunset shapes encasing the scene */}
+      <LowPolySunsetShapes />
+      <fog attach="fog" args={["#ff6b4a", 20, 55]} />
 
       <Lights />
+
+      {/* Sun setting over mountains */}
+      <LowPolySun />
+
+      {/* Sunset clouds */}
+      <SunsetClouds />
+
+      {/* Mountain range */}
+      <LowPolyMountains />
 
       <Stars
         radius={35}
@@ -634,7 +799,6 @@ export default function Scene() {
         </Float>
 
         <GlassCube />
-        <Base />
         <Sparkles count={80} radius={2.5} />
         <MysticalSmoke />
       </Suspense>
