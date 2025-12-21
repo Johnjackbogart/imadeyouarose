@@ -120,38 +120,89 @@ const sepalMaterial = new THREE.MeshPhysicalMaterial({
   side: THREE.DoubleSide,
 });
 
-interface PetalGeometryOptions {
-  curl?: number;
-  cup?: number;
-  twist?: number;
-  ruffle?: number;
-  tipFold?: number;
-  pinch?: number;
+// Create realistic rose petal shape - heart-shaped with wider top
+function createRosePetalShape(layer: number = 0) {
+  // layer 0 = innermost (narrow, tall), layer 3 = outermost (wide, heart-shaped)
+  const shape = new THREE.Shape();
+
+  // Petal proportions change by layer
+  const widthScale = 0.8 + layer * 0.15; // Outer petals are wider
+  const heightScale = 1.0 - layer * 0.05; // Outer petals slightly shorter relative to width
+  const notchDepth = 0.02 + layer * 0.03; // Heart notch deeper on outer petals
+
+  // Base point (narrow attachment point)
+  shape.moveTo(0, 0);
+
+  // Right side going up - creates the rounded bulge of the petal
+  shape.bezierCurveTo(
+    0.15 * widthScale, 0.05 * heightScale,  // control point 1
+    0.45 * widthScale, 0.25 * heightScale,  // control point 2
+    0.48 * widthScale, 0.55 * heightScale   // end point (widest part)
+  );
+
+  // Right side continuing to top with heart curve
+  shape.bezierCurveTo(
+    0.50 * widthScale, 0.75 * heightScale,  // control point 1
+    0.42 * widthScale, 0.95 * heightScale,  // control point 2
+    0.22 * widthScale, 1.0 * heightScale    // right lobe peak
+  );
+
+  // Heart notch at top
+  shape.bezierCurveTo(
+    0.12 * widthScale, 1.02 * heightScale,  // control point 1
+    0.04 * widthScale, (1.0 - notchDepth) * heightScale, // control point 2
+    0, (1.0 - notchDepth * 0.5) * heightScale // center notch
+  );
+
+  // Left lobe
+  shape.bezierCurveTo(
+    -0.04 * widthScale, (1.0 - notchDepth) * heightScale,
+    -0.12 * widthScale, 1.02 * heightScale,
+    -0.22 * widthScale, 1.0 * heightScale   // left lobe peak
+  );
+
+  // Left side going down
+  shape.bezierCurveTo(
+    -0.42 * widthScale, 0.95 * heightScale,
+    -0.50 * widthScale, 0.75 * heightScale,
+    -0.48 * widthScale, 0.55 * heightScale  // widest part
+  );
+
+  // Left side to base
+  shape.bezierCurveTo(
+    -0.45 * widthScale, 0.25 * heightScale,
+    -0.15 * widthScale, 0.05 * heightScale,
+    0, 0
+  );
+
+  return shape;
 }
 
-// Pre-create petal geometries once
-const petalShape = new THREE.Shape();
-petalShape.moveTo(0, 0);
-petalShape.bezierCurveTo(0.2, 0.02, 0.52, 0.35, 0.44, 0.75);
-petalShape.bezierCurveTo(0.4, 1.12, 0.16, 1.42, 0, 1.34);
-petalShape.bezierCurveTo(-0.16, 1.42, -0.4, 1.12, -0.44, 0.75);
-petalShape.bezierCurveTo(-0.52, 0.35, -0.2, 0.02, 0, 0);
+// Pre-create petal shapes for different layers
+const petalShapes = [
+  createRosePetalShape(0), // innermost
+  createRosePetalShape(1),
+  createRosePetalShape(2),
+  createRosePetalShape(3), // outermost
+];
 
-function createPetalGeometry({
-  curl = 0.06,
-  cup = 0.06,
-  twist = 0.35,
-  ruffle = 0.025,
-  tipFold = 0.04,
-  pinch = 0.18,
-}: PetalGeometryOptions = {}) {
-  const geometry = new THREE.ExtrudeGeometry(petalShape, {
-    depth: 0.022,
+interface LayerGeometryOptions {
+  layer: number; // 0-4 (innermost to outermost)
+  variant?: number; // 0-2 for slight variations within layer
+}
+
+function createLayeredPetalGeometry({ layer, variant = 0 }: LayerGeometryOptions) {
+  // Get shape based on layer (clamp to available shapes)
+  const shapeIndex = Math.min(layer, petalShapes.length - 1);
+  const shape = petalShapes[shapeIndex];
+
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.018,
     bevelEnabled: true,
-    bevelThickness: 0.012,
-    bevelSize: 0.012,
+    bevelThickness: 0.008,
+    bevelSize: 0.008,
     bevelSegments: 3,
-    curveSegments: 20,
+    curveSegments: 24,
   });
 
   geometry.computeBoundingBox();
@@ -159,10 +210,24 @@ function createPetalGeometry({
   if (!bounds) return geometry;
 
   const height = bounds.max.y - bounds.min.y;
-  const halfWidth =
-    Math.max(Math.abs(bounds.min.x), Math.abs(bounds.max.x)) || 1;
+  const halfWidth = Math.max(Math.abs(bounds.min.x), Math.abs(bounds.max.x)) || 1;
   const position = geometry.attributes.position as THREE.BufferAttribute;
   const vertex = new THREE.Vector3();
+
+  // Layer-specific deformation parameters
+  // Inner petals: tight cup, minimal curl, strong twist inward
+  // Outer petals: open cup, strong backward curl, edge ruffles
+  const layerT = layer / 4; // 0 to 1
+
+  const cup = 0.15 - layerT * 0.12; // Inner: strong cup, outer: flatter
+  const backwardCurl = layerT * 0.25; // Only outer petals curl backward
+  const edgeCurl = 0.02 + layerT * 0.08; // Edge curl increases outward
+  const ruffle = layerT * 0.04; // Only outer petals ruffle
+  const pinch = 0.3 - layerT * 0.15; // Base pinch stronger on inner
+  const twist = 0.1 + (1 - layerT) * 0.3; // Inner petals twist more (spiral)
+
+  // Add variant randomness
+  const variantOffset = variant * 0.15;
 
   for (let i = 0; i < position.count; i++) {
     vertex.fromBufferAttribute(position, i);
@@ -171,20 +236,27 @@ function createPetalGeometry({
     const edge = THREE.MathUtils.clamp(Math.abs(vertex.x) / halfWidth, 0, 1);
     const center = 1 - edge;
 
-    const basePinch = 1 - (1 - Math.min(y01 / 0.22, 1)) * pinch;
+    // Pinch the base narrower
+    const basePinch = 1 - (1 - Math.min(y01 / 0.25, 1)) * pinch;
     vertex.x *= basePinch;
 
-    const ruffleWave =
-      Math.sin(y01 * Math.PI * 3.5 + edge * Math.PI) * ruffle * edge;
-    const cupCurve = Math.sin(y01 * Math.PI) * center * cup;
-    const curlEdge =
-      Math.pow(edge, 1.55) * (curl + 0.02 * Math.sin(y01 * Math.PI * 2));
-    const tip = Math.max(0, y01 - 0.78) / 0.22;
+    // Cupping - makes petal curve inward like a spoon
+    const cupCurve = Math.sin(y01 * Math.PI * 0.8) * center * cup;
 
-    const tipFoldAmount = tip * tipFold * (0.35 + edge * 0.65);
-    vertex.z += cupCurve - curlEdge + ruffleWave - tipFoldAmount;
+    // Edge curl - edges curl inward/outward
+    const edgeCurlAmount = Math.pow(edge, 1.5) * edgeCurl * (1 + Math.sin(y01 * Math.PI) * 0.5);
 
-    const twistAngle = (y01 - 0.15) * twist;
+    // Backward curl for outer petals - tip folds backward
+    const backCurl = Math.pow(y01, 2) * backwardCurl * (0.5 + center * 0.5);
+
+    // Ruffle on edges (wavy edge effect on outer petals)
+    const ruffleWave = Math.sin(y01 * Math.PI * 4 + edge * Math.PI * 2 + variantOffset) * ruffle * edge * y01;
+
+    // Combine Z deformations
+    vertex.z += cupCurve - edgeCurlAmount - backCurl + ruffleWave;
+
+    // Twist for spiral effect (stronger on inner petals)
+    const twistAngle = (y01 - 0.2) * twist * (1 + variantOffset * 0.3);
     const cos = Math.cos(twistAngle);
     const sin = Math.sin(twistAngle);
     const x = vertex.x;
@@ -208,39 +280,28 @@ function createPetalGeometry({
   return geometry;
 }
 
+// Create geometries for each layer with variants
 const petalGeometries = [
-  createPetalGeometry({
-    curl: 0.04,
-    cup: 0.08,
-    twist: 0.4,
-    ruffle: 0.015,
-    tipFold: 0.02,
-    pinch: 0.24,
-  }),
-  createPetalGeometry({
-    curl: 0.06,
-    cup: 0.06,
-    twist: 0.32,
-    ruffle: 0.022,
-    tipFold: 0.035,
-    pinch: 0.18,
-  }),
-  createPetalGeometry({
-    curl: 0.08,
-    cup: 0.05,
-    twist: 0.45,
-    ruffle: 0.03,
-    tipFold: 0.05,
-    pinch: 0.14,
-  }),
-  createPetalGeometry({
-    curl: 0.11,
-    cup: 0.03,
-    twist: 0.55,
-    ruffle: 0.045,
-    tipFold: 0.075,
-    pinch: 0.1,
-  }),
+  // Layer 0 - innermost tight spiral (3 variants)
+  createLayeredPetalGeometry({ layer: 0, variant: 0 }),
+  createLayeredPetalGeometry({ layer: 0, variant: 1 }),
+  createLayeredPetalGeometry({ layer: 0, variant: 2 }),
+  // Layer 1 - inner cup
+  createLayeredPetalGeometry({ layer: 1, variant: 0 }),
+  createLayeredPetalGeometry({ layer: 1, variant: 1 }),
+  createLayeredPetalGeometry({ layer: 1, variant: 2 }),
+  // Layer 2 - middle
+  createLayeredPetalGeometry({ layer: 2, variant: 0 }),
+  createLayeredPetalGeometry({ layer: 2, variant: 1 }),
+  createLayeredPetalGeometry({ layer: 2, variant: 2 }),
+  // Layer 3 - outer
+  createLayeredPetalGeometry({ layer: 3, variant: 0 }),
+  createLayeredPetalGeometry({ layer: 3, variant: 1 }),
+  createLayeredPetalGeometry({ layer: 3, variant: 2 }),
+  // Layer 4 - outermost with strong backward curl
+  createLayeredPetalGeometry({ layer: 4, variant: 0 }),
+  createLayeredPetalGeometry({ layer: 4, variant: 1 }),
+  createLayeredPetalGeometry({ layer: 4, variant: 2 }),
 ];
 
 function mulberry32(seed: number) {
@@ -458,7 +519,7 @@ function FallingPetals() {
     const configs: FallingPetalConfig[] = [];
     const rand = mulberry32(789);
 
-    // Create falling petals around the rose
+    // Create falling petals around the rose - use outer layer geometries (9-14)
     for (let i = 0; i < 12; i++) {
       const angle = (i / 12) * Math.PI * 2 + rand() * 0.5;
       const radius = 0.8 + rand() * 1.2;
@@ -471,7 +532,7 @@ function FallingPetals() {
         ],
         rotation: [rand() * Math.PI, rand() * Math.PI * 2, rand() * Math.PI],
         scale: 0.3 + rand() * 0.25,
-        geometryIndex: Math.floor(rand() * 3), // Use different petal shapes
+        geometryIndex: 9 + Math.floor(rand() * 6), // Use outer layer petal shapes (layers 3-4)
         materialIndex: Math.floor(rand() * petalMaterials.length),
         fallSpeed: 0.3 + rand() * 0.2,
         swaySpeed: 1.5 + rand() * 1,
@@ -499,119 +560,100 @@ function RoseBud() {
   const petals = useMemo(() => {
     const petalConfigs: PetalConfig[] = [];
     const rand = mulberry32(23);
-    const petalCount = 28; // Reduced for cleaner inner ring detail
-    const goldenAngle = Math.PI * (3 - Math.sqrt(5)) * 1.12;
+
+    // Define concentric whorls like real roses
+    // Each whorl has: count, radius, height, tilt (how open), scale
+    const whorls = [
+      // Center spiral - very tight, almost vertical petals
+      { count: 3, radius: 0.02, height: 0.22, tilt: 0.15, scale: 0.12, layer: 0 },
+      { count: 4, radius: 0.04, height: 0.20, tilt: 0.25, scale: 0.16, layer: 0 },
+      // Inner cup - still quite upright
+      { count: 5, radius: 0.07, height: 0.17, tilt: 0.35, scale: 0.22, layer: 1 },
+      { count: 6, radius: 0.10, height: 0.14, tilt: 0.45, scale: 0.28, layer: 1 },
+      // Middle layers - starting to open
+      { count: 7, radius: 0.14, height: 0.10, tilt: 0.55, scale: 0.35, layer: 2 },
+      { count: 8, radius: 0.18, height: 0.06, tilt: 0.65, scale: 0.42, layer: 2 },
+      // Outer layers - quite open, backward curl
+      { count: 8, radius: 0.23, height: 0.02, tilt: 0.78, scale: 0.50, layer: 3 },
+      { count: 9, radius: 0.28, height: -0.02, tilt: 0.88, scale: 0.55, layer: 3 },
+      // Outermost - very open, strong backward curl
+      { count: 10, radius: 0.34, height: -0.06, tilt: 0.95, scale: 0.58, layer: 4 },
+    ];
+
     const up = new THREE.Vector3(0, 1, 0);
-    const down = new THREE.Vector3(0, -1, 0);
     const radial = new THREE.Vector3();
-    const tangent = new THREE.Vector3();
     const petalDir = new THREE.Vector3();
-    const radialScaled = new THREE.Vector3();
-    const downScaled = new THREE.Vector3();
-    const currentRight = new THREE.Vector3();
-    const desiredRight = new THREE.Vector3();
-    const projectedCurrent = new THREE.Vector3();
-    const projectedDesired = new THREE.Vector3();
-    const cross = new THREE.Vector3();
     const baseQuat = new THREE.Quaternion();
     const rollQuat = new THREE.Quaternion();
     const finalQuat = new THREE.Quaternion();
     const euler = new THREE.Euler();
 
-    for (let i = 0; i < petalCount; i++) {
-      const t = i / (petalCount - 1);
-      const open = Math.pow(t, 1.18);
-      const edge = Math.max(0, (t - 0.8) / 0.2);
+    let whorlOffset = 0; // Stagger each whorl by half a petal width
 
-      const spiral = i * goldenAngle;
-      const angle = spiral + (rand() - 0.5) * 0.12 + open * 0.5;
-      const radius = 0.005 + Math.pow(t, 0.86) * 0.3;
-      const height = 0.15 - Math.pow(t, 0.94) * 0.33;
-      const scale = (0.18 + open * 0.68) * (0.9 + rand() * 0.12);
+    whorls.forEach((whorl) => {
+      // Offset each whorl to stagger petals
+      whorlOffset += Math.PI / whorl.count;
 
-      const outward =
-        radius + (rand() - 0.5) * (0.012 + open * 0.01) + edge * 0.02;
-      const lifted = height + (rand() - 0.5) * 0.02 - edge * 0.02;
+      for (let i = 0; i < whorl.count; i++) {
+        const angleBase = (i / whorl.count) * Math.PI * 2 + whorlOffset;
+        const angle = angleBase + (rand() - 0.5) * 0.15; // Slight random variation
 
-      const geometryIndex =
-        edge > 0.5 ? 3 : open > 0.62 ? 2 : open > 0.28 ? 1 : 0;
+        // Position with slight random variation
+        const radiusVar = whorl.radius * (0.92 + rand() * 0.16);
+        const heightVar = whorl.height + (rand() - 0.5) * 0.02;
+        const scaleVar = whorl.scale * (0.9 + rand() * 0.2);
 
-      let materialIndex = Math.min(
-        petalMaterials.length - 1,
-        Math.floor(open * petalMaterials.length),
-      );
-      if (rand() < 0.25 && materialIndex > 0) {
-        materialIndex -= 1;
-      }
+        // Calculate petal direction based on tilt (openness)
+        // tilt 0 = straight up, tilt 1 = horizontal outward
+        radial.set(Math.cos(angle), 0, Math.sin(angle));
 
-      radial.set(Math.cos(angle), 0, Math.sin(angle));
-      tangent.set(-Math.sin(angle), 0, Math.cos(angle));
+        // Blend between up and outward based on tilt
+        const upComponent = Math.cos(whorl.tilt * Math.PI * 0.5);
+        const outComponent = Math.sin(whorl.tilt * Math.PI * 0.5);
 
-      const radialBias = -0.36 + open * 1.18;
-      const upward = 1 - open * 0.28;
-      radialScaled.copy(radial).multiplyScalar(radialBias);
-      downScaled.copy(down).multiplyScalar(open * (0.08 + edge * 0.25));
+        // For outer petals, add slight downward tilt (backward curl effect)
+        const downComponent = whorl.layer >= 3 ? (whorl.tilt - 0.7) * 0.3 : 0;
 
-      petalDir
-        .copy(up)
-        .multiplyScalar(upward)
-        .add(radialScaled)
-        .add(downScaled)
-        .normalize();
+        petalDir.set(
+          radial.x * outComponent,
+          upComponent - downComponent,
+          radial.z * outComponent
+        ).normalize();
 
-      baseQuat.setFromUnitVectors(up, petalDir);
+        baseQuat.setFromUnitVectors(up, petalDir);
 
-      desiredRight
-        .copy(tangent)
-        .lerp(radial, 0.2 + open * 0.6)
-        .normalize();
-      currentRight.set(1, 0, 0).applyQuaternion(baseQuat);
+        // Roll to face center with some variation
+        const rollAngle = angle + Math.PI + (rand() - 0.5) * 0.3;
+        rollQuat.setFromAxisAngle(petalDir, rollAngle);
 
-      projectedCurrent
-        .copy(currentRight)
-        .addScaledVector(petalDir, -currentRight.dot(petalDir));
-      projectedDesired
-        .copy(desiredRight)
-        .addScaledVector(petalDir, -desiredRight.dot(petalDir));
+        finalQuat.copy(rollQuat).multiply(baseQuat);
+        euler.setFromQuaternion(finalQuat, "XYZ");
 
-      if (
-        projectedCurrent.lengthSq() < 1e-6 ||
-        projectedDesired.lengthSq() < 1e-6
-      ) {
-        rollQuat.identity();
-      } else {
-        projectedCurrent.normalize();
-        projectedDesired.normalize();
-        const dot = THREE.MathUtils.clamp(
-          projectedCurrent.dot(projectedDesired),
-          -1,
-          1,
+        // Select geometry based on layer (3 variants per layer)
+        const geometryIndex = whorl.layer * 3 + Math.floor(rand() * 3);
+
+        // Material - darker in center, lighter outside
+        let materialIndex = Math.min(
+          petalMaterials.length - 1,
+          Math.floor((whorl.layer / 4) * petalMaterials.length)
         );
-        let angleAround = Math.acos(dot);
-        cross.crossVectors(projectedCurrent, projectedDesired);
-        if (petalDir.dot(cross) < 0) {
-          angleAround = -angleAround;
-        }
-        angleAround += (rand() - 0.5) * (0.3 + open * 0.6) + edge * 0.15;
-        rollQuat.setFromAxisAngle(petalDir, angleAround);
+        if (rand() < 0.2 && materialIndex > 0) materialIndex--;
+
+        petalConfigs.push({
+          position: [
+            Math.cos(angle) * radiusVar,
+            heightVar,
+            Math.sin(angle) * radiusVar,
+          ],
+          rotation: [euler.x, euler.y, euler.z],
+          scale: scaleVar,
+          geometryIndex: Math.min(geometryIndex, petalGeometries.length - 1),
+          materialIndex,
+          openness: whorl.tilt,
+        });
       }
+    });
 
-      finalQuat.copy(rollQuat).multiply(baseQuat);
-      euler.setFromQuaternion(finalQuat, "XYZ");
-
-      petalConfigs.push({
-        position: [
-          Math.cos(angle) * outward,
-          lifted,
-          Math.sin(angle) * outward,
-        ],
-        rotation: [euler.x, euler.y, euler.z],
-        scale,
-        geometryIndex,
-        materialIndex,
-        openness: open, // Store how open this petal is for animation
-      });
-    }
     return petalConfigs;
   }, []);
 

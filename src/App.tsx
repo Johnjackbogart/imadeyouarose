@@ -13,6 +13,7 @@ function App() {
   });
   const [canvasReady, setCanvasReady] = useState(false);
   const [sceneVisible, setSceneVisible] = useState(false);
+  const [useRealisticRose, setUseRealisticRose] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -40,11 +41,15 @@ function App() {
       <Canvas
         className={`scene-canvas${sceneVisible ? " is-ready" : ""}`}
         camera={camera}
-        gl={{ antialias: true, alpha: false }}
-        dpr={[1, 2]}
+        gl={{
+          antialias: !isMobile,
+          alpha: false,
+          powerPreference: isMobile ? "high-performance" : "default",
+        }}
+        dpr={isMobile ? 1 : [1, 2]}
         onCreated={() => setCanvasReady(true)}
       >
-        <Scene isMobile={isMobile} />
+        <Scene isMobile={isMobile} useRealisticRose={useRealisticRose} />
       </Canvas>
       <SunLoader
         canvasReady={canvasReady}
@@ -53,6 +58,14 @@ function App() {
       <div className="message">
         <h1>i made this for you</h1>
       </div>
+      {sceneVisible && (
+        <button
+          className="rose-toggle"
+          onClick={() => setUseRealisticRose(!useRealisticRose)}
+        >
+          {useRealisticRose ? "Glass Rose" : "Realistic Rose"}
+        </button>
+      )}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import {
-  Environment,
   Float,
   OrbitControls,
   Stars,
@@ -12,11 +11,13 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import GlassRose from "./GlassRose";
+import RealisticRose from "./RealisticRose";
 import Sparkles from "./Sparkles";
 import MysticalSmoke from "./MysticalSmoke";
 
 type SceneProps = {
   isMobile?: boolean;
+  useRealisticRose?: boolean;
 };
 
 function Lights() {
@@ -69,7 +70,7 @@ function Lights() {
   );
 }
 
-function GlassCube() {
+function GlassCube({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <RoundedBox
       args={[4, 6, 4]}
@@ -78,24 +79,35 @@ function GlassCube() {
       position={[0, 0.8, 0]}
       renderOrder={100}
     >
-      <MeshTransmissionMaterial
-        samples={4}
-        resolution={256}
-        transmission={1}
-        roughness={0}
-        thickness={0.2}
-        ior={1.5}
-        chromaticAberration={0.02}
-        envMapIntensity={0.05}
-        anisotropy={0}
-        distortion={0}
-        distortionScale={0}
-        temporalDistortion={0}
-        attenuationDistance={10}
-        attenuationColor="#ffffff"
-        color="#ffffff"
-        transmissionSampler
-      />
+      {isMobile ? (
+        <meshStandardMaterial
+          color="#ffffff"
+          roughness={0.15}
+          metalness={0}
+          transparent
+          opacity={0.14}
+          depthWrite={false}
+        />
+      ) : (
+        <MeshTransmissionMaterial
+          samples={4}
+          resolution={256}
+          transmission={1}
+          roughness={0}
+          thickness={0.2}
+          ior={1.5}
+          chromaticAberration={0.02}
+          envMapIntensity={0.05}
+          anisotropy={0}
+          distortion={0}
+          distortionScale={0}
+          temporalDistortion={0}
+          attenuationDistance={10}
+          attenuationColor="#ffffff"
+          color="#ffffff"
+          transmissionSampler
+        />
+      )}
     </RoundedBox>
   );
 }
@@ -108,9 +120,10 @@ function createSeededRandom(seed: number) {
   };
 }
 
-function LowPolyMeadow() {
+function LowPolyMeadow({ isMobile = false }: { isMobile?: boolean }) {
   const geometry = useMemo(() => {
-    const plane = new THREE.PlaneGeometry(34, 34, 40, 40);
+    const segments = isMobile ? 24 : 40;
+    const plane = new THREE.PlaneGeometry(34, 34, segments, segments);
     plane.rotateX(-Math.PI / 2);
 
     const positions = plane.attributes.position as THREE.BufferAttribute;
@@ -162,7 +175,7 @@ function LowPolyMeadow() {
     plane.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
     plane.computeVertexNormals();
     return plane;
-  }, []);
+  }, [isMobile]);
 
   return (
     <mesh geometry={geometry} position={[0, -2.45, 0]} receiveShadow>
@@ -195,7 +208,7 @@ function getMeadowHeight(x: number, z: number): number {
 }
 
 // Grass tufts scattered across the meadow
-function GrassTufts() {
+function GrassTufts({ isMobile = false }: { isMobile?: boolean }) {
   const grassData = useMemo(() => {
     const rand = createSeededRandom(789);
     const tufts: {
@@ -206,8 +219,9 @@ function GrassTufts() {
     }[] = [];
 
     const colors = ["#4a7c3f", "#3d6b35", "#5a8c4a", "#4d7842", "#3a6630"];
+    const tuftCount = isMobile ? 90 : 200;
 
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < tuftCount; i++) {
       const angle = rand() * Math.PI * 2;
       const radius = 3 + rand() * 13;
       const x = Math.cos(angle) * radius;
@@ -224,7 +238,7 @@ function GrassTufts() {
     }
 
     return tufts;
-  }, []);
+  }, [isMobile]);
 
   return (
     <group>
@@ -253,7 +267,7 @@ function GrassTufts() {
 }
 
 // Low poly bush cluster around the rose base
-function RoseBaseBush() {
+function RoseBaseBush({ isMobile = false }: { isMobile?: boolean }) {
   const bushClusters = useMemo(() => {
     const rand = createSeededRandom(555);
     const clusters: {
@@ -263,10 +277,12 @@ function RoseBaseBush() {
     }[] = [];
 
     const colors = ["#3d6b35", "#4a7c3f", "#2d5a28", "#3a6630", "#4d7842"];
+    const ringCount = isMobile ? 12 : 18;
+    const innerCount = isMobile ? 6 : 10;
 
     // Create a ring of bushes around the base
-    for (let i = 0; i < 18; i++) {
-      const angle = (i / 18) * Math.PI * 2 + rand() * 0.3;
+    for (let i = 0; i < ringCount; i++) {
+      const angle = (i / ringCount) * Math.PI * 2 + rand() * 0.3;
       const radius = 2.2 + rand() * 0.5;
       clusters.push({
         position: [
@@ -280,8 +296,8 @@ function RoseBaseBush() {
     }
 
     // Add some smaller inner bushes
-    for (let i = 0; i < 10; i++) {
-      const angle = (i / 10) * Math.PI * 2 + rand() * 0.5;
+    for (let i = 0; i < innerCount; i++) {
+      const angle = (i / innerCount) * Math.PI * 2 + rand() * 0.5;
       const radius = 2.6 + rand() * 0.4;
       clusters.push({
         position: [
@@ -295,7 +311,7 @@ function RoseBaseBush() {
     }
 
     return clusters;
-  }, []);
+  }, [isMobile]);
 
   return (
     <group>
@@ -1376,19 +1392,62 @@ function SunsetClouds() {
   );
 }
 
-export default function Scene({ isMobile = false }: SceneProps) {
+export default function Scene({ isMobile = false, useRealisticRose = false }: SceneProps) {
   const { camera } = useThree();
   const controls = useRef<OrbitControlsImpl | null>(null);
 
   useEffect(() => {
-    const position = isMobile ? [0, 1.4, 12] : [0, 1, 8];
+    const position = isMobile ? [0, 2.6, 7.8] : [0, 1, 8];
+    const target = isMobile ? [0, 0.8, 0] : [0, 0.5, 0];
     camera.position.set(position[0], position[1], position[2]);
+    camera.lookAt(target[0], target[1], target[2]);
     camera.updateProjectionMatrix();
+    if (controls.current) {
+      controls.current.target.set(target[0], target[1], target[2]);
+    }
     controls.current?.update();
   }, [camera, isMobile]);
 
-  const maxDistance = isMobile ? 14 : 8;
-  const minDistance = isMobile ? 5 : 3;
+  const maxDistance = isMobile ? 11 : 8;
+  const minDistance = isMobile ? 4 : 3;
+  const pondConfigs = useMemo(
+    () => [
+      {
+        position: [-5, -2.35 + getMeadowHeight(-5, 5), 5] as [number, number, number],
+        scale: 1,
+        seed: 123,
+      },
+      {
+        position: [8, -2.35 + getMeadowHeight(8, -2), -2] as [number, number, number],
+        scale: 0.7,
+        seed: 234,
+      },
+      {
+        position: [-8, -2.35 + getMeadowHeight(-8, -6), -6] as [number, number, number],
+        scale: 1.3,
+        seed: 345,
+      },
+      {
+        position: [4, -2.35 + getMeadowHeight(4, 8), 8] as [number, number, number],
+        scale: 0.5,
+        seed: 456,
+        hasLilies: false,
+      },
+      {
+        position: [-3, -2.35 + getMeadowHeight(-3, -7), -7] as [number, number, number],
+        scale: 0.8,
+        seed: 567,
+      },
+      {
+        position: [9, -2.35 + getMeadowHeight(9, 6), 6] as [number, number, number],
+        scale: 0.6,
+        seed: 678,
+        hasLilies: false,
+      },
+    ],
+    []
+  );
+  const pondsToRender = isMobile ? pondConfigs.slice(0, 3) : pondConfigs;
 
   return (
     <>
@@ -1410,31 +1469,36 @@ export default function Scene({ isMobile = false }: SceneProps) {
       {/* Mountain range */}
       <LowPolyMountains />
 
-      <Stars
-        radius={35}
-        depth={25}
-        count={180}
-        factor={2}
-        saturation={0.1}
-        fade
-        speed={0.05}
-      />
+      {!isMobile && (
+        <Stars
+          radius={35}
+          depth={25}
+          count={180}
+          factor={2}
+          saturation={0.1}
+          fade
+          speed={0.05}
+        />
+      )}
 
       <Suspense fallback={null}>
-        <LowPolyMeadow />
-        <GrassTufts />
+        <LowPolyMeadow isMobile={isMobile} />
+        <GrassTufts isMobile={isMobile} />
         <LowPolyHills />
         <LowPolyTrees />
         <LowPolyRocks />
         <LowPolyCabin />
         <LowPolyRiver />
         {/* Multiple ponds of various sizes - slightly above terrain */}
-        <LowPolyPond position={[-5, -2.35 + getMeadowHeight(-5, 5), 5]} scale={1} seed={123} />
-        <LowPolyPond position={[8, -2.35 + getMeadowHeight(8, -2), -2]} scale={0.7} seed={234} />
-        <LowPolyPond position={[-8, -2.35 + getMeadowHeight(-8, -6), -6]} scale={1.3} seed={345} />
-        <LowPolyPond position={[4, -2.35 + getMeadowHeight(4, 8), 8]} scale={0.5} seed={456} hasLilies={false} />
-        <LowPolyPond position={[-3, -2.35 + getMeadowHeight(-3, -7), -7]} scale={0.8} seed={567} />
-        <LowPolyPond position={[9, -2.35 + getMeadowHeight(9, 6), 6]} scale={0.6} seed={678} hasLilies={false} />
+        {pondsToRender.map((pond, index) => (
+          <LowPolyPond
+            key={`pond-${index}`}
+            position={pond.position}
+            scale={pond.scale}
+            seed={pond.seed}
+            hasLilies={pond.hasLilies}
+          />
+        ))}
 
         <Float
           speed={1}
@@ -1442,12 +1506,12 @@ export default function Scene({ isMobile = false }: SceneProps) {
           floatIntensity={0.3}
           floatingRange={[-0.05, 0.05]}
         >
-          <GlassRose />
+          {useRealisticRose ? <RealisticRose /> : <GlassRose />}
         </Float>
 
-        <GlassCube />
-        <RoseBaseBush />
-        <Sparkles count={80} radius={2.5} />
+        <GlassCube isMobile={isMobile} />
+        <RoseBaseBush isMobile={isMobile} />
+        <Sparkles count={isMobile ? 40 : 80} radius={2.5} />
         <MysticalSmoke />
       </Suspense>
 
@@ -1457,26 +1521,28 @@ export default function Scene({ isMobile = false }: SceneProps) {
         enableZoom={true}
         minDistance={minDistance}
         maxDistance={maxDistance}
-        minPolarAngle={Math.PI / 6}
+        minPolarAngle={0.1}
         maxPolarAngle={Math.PI / 2}
         autoRotate
         autoRotateSpeed={0.5}
       />
 
-      <EffectComposer
-        multisampling={0}
-        enableNormalPass={false}
-        depthBuffer={false}
-        stencilBuffer={false}
-        renderPriority={-1}
-      >
-        <Bloom
-          intensity={0.35}
-          luminanceThreshold={0.35}
-          luminanceSmoothing={0.8}
-          mipmapBlur
-        />
-      </EffectComposer>
+      {!isMobile && (
+        <EffectComposer
+          multisampling={0}
+          enableNormalPass={false}
+          depthBuffer={false}
+          stencilBuffer={false}
+          renderPriority={-1}
+        >
+          <Bloom
+            intensity={0.35}
+            luminanceThreshold={0.35}
+            luminanceSmoothing={0.8}
+            mipmapBlur
+          />
+        </EffectComposer>
+      )}
     </>
   );
 }
