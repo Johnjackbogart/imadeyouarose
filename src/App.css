@@ -22,12 +22,16 @@
   position: absolute;
   bottom: 40px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 0);
   text-align: center;
   color: white;
   pointer-events: none;
   z-index: 10;
   max-width: 90vw;
+  opacity: 1;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
 }
 
 .message h1 {
@@ -79,6 +83,11 @@
   animation:
     fadeIn 2s ease-out,
     glow 4s ease-in-out infinite;
+}
+
+.message.is-hidden {
+  opacity: 0;
+  transform: translate(-50%, 20px);
 }
 
 @media (max-width: 768px) {

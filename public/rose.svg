@@ -5,8 +5,11 @@
    aria-label="Minimal rose icon 01"
    version="1.1"
    id="svg399"
-   sodipodi:docname="rose1.svg"
+   sodipodi:docname="rose2.svg"
    inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   inkscape:export-filename="rose1.png"
+   inkscape:export-xdpi="172.8"
+   inkscape:export-ydpi="172.8"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -91,7 +94,7 @@
      height="99.05381"
      x="0.43791741"
      y="0.43791741"
-     ry="7.0093703" />
+     ry="50" />
   <g
      id="g14414"
      transform="translate(5.4942415,-0.02461116)">

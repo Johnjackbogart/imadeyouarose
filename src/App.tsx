@@ -55,7 +55,7 @@ function App() {
         canvasReady={canvasReady}
         onComplete={() => setSceneVisible(true)}
       />
-      <div className="message">
+      <div className={`message${sceneVisible ? " is-hidden" : ""}`}>
         <h1>i made this for you</h1>
       </div>
       {sceneVisible && (
