@@ -72,6 +72,9 @@ const fragmentShader = `
     float bud = rr - (0.30 + 0.025 * sin(8.0 * swirl) * smoothstep(0.0, 0.35, rr));
     bloom = min(bloom, bud);
 
+    float tipIndent = length(vec2(r, y - .60)) - 0.51;
+    bloom = max(bloom, -tipIndent);
+
     vec3 s = p - vec3(0.0, -0.55, 0.0);
     float stem = max(length(s.xz) - 0.055, abs(s.y) - 0.75);
 
@@ -291,7 +294,7 @@ const fragmentShader = `
     vec3 hp = vec3(0.0);
     float tHit = 0.0;
     bool hit = false;
-    float maxT = 4.0;
+    float maxT = max(4.0, length(ro) + 1.5);
     for (int i = 0; i < 56; i++) {
       vec3 p = ro + rdRoseBase * tHit;
       if (tHit > maxT) break;
@@ -375,7 +378,6 @@ export default function IridescentRose({
   const quadScale = scale * (2 / planeSize);
   const worldPos = useMemo(() => new THREE.Vector3(), []);
   const camToRose = useMemo(() => new THREE.Vector3(), []);
-  const desiredCam = useMemo(() => new THREE.Vector3(), []);
 
   const uniforms = useMemo(
     () => ({
@@ -400,22 +402,21 @@ export default function IridescentRose({
     if (meshRef.current) {
       meshRef.current.getWorldPosition(worldPos);
       camToRose.copy(camera.position).sub(worldPos);
-      const dist = Math.max(0.001, camToRose.length());
-      desiredCam.copy(camToRose).multiplyScalar(camDist / dist);
-
       const horiz = Math.max(
         0.001,
-        Math.sqrt(desiredCam.x * desiredCam.x + desiredCam.z * desiredCam.z)
+        Math.sqrt(camToRose.x * camToRose.x + camToRose.z * camToRose.z),
       );
-      uniforms.uYaw.value = Math.atan2(-desiredCam.x, desiredCam.z);
-      uniforms.uPitch.value = desiredCam.y - 0.18;
+      uniforms.uYaw.value = Math.atan2(-camToRose.x, camToRose.z);
+      uniforms.uPitch.value = camToRose.y - 0.18;
       uniforms.uCamDist.value = horiz;
+      const cameraZoom = (camera as THREE.PerspectiveCamera).zoom ?? 1;
+      uniforms.uZoom.value = zoom * cameraZoom;
 
       uniforms.iMouse.value.set(
         (state.pointer.x * 0.5 + 0.5) * uniforms.iResolution.value.x,
         (state.pointer.y * 0.5 + 0.5) * uniforms.iResolution.value.y,
         0,
-        0
+        0,
       );
       meshRef.current.quaternion.copy(camera.quaternion);
     }
