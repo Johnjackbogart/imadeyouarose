@@ -382,96 +382,99 @@ function RealisticRoseBud() {
     const petalConfigs: PetalConfig[] = [];
     const rand = mulberry32(42);
 
-    // More whorls with more petals for realistic density
-    const whorls = [
-      // Very tight center spiral
-      { count: 3, radius: 0.015, height: 0.24, tilt: 0.08, scale: 0.08, layer: 0 },
-      { count: 4, radius: 0.025, height: 0.23, tilt: 0.12, scale: 0.10, layer: 0 },
-      { count: 5, radius: 0.038, height: 0.21, tilt: 0.18, scale: 0.13, layer: 0 },
-      // Inner cup
-      { count: 5, radius: 0.052, height: 0.19, tilt: 0.25, scale: 0.17, layer: 1 },
-      { count: 6, radius: 0.068, height: 0.17, tilt: 0.32, scale: 0.21, layer: 1 },
-      { count: 7, radius: 0.085, height: 0.15, tilt: 0.40, scale: 0.25, layer: 1 },
-      // Middle layers
-      { count: 7, radius: 0.105, height: 0.12, tilt: 0.48, scale: 0.30, layer: 2 },
-      { count: 8, radius: 0.125, height: 0.09, tilt: 0.55, scale: 0.35, layer: 2 },
-      { count: 8, radius: 0.148, height: 0.06, tilt: 0.62, scale: 0.40, layer: 3 },
-      // Outer layers
-      { count: 9, radius: 0.175, height: 0.03, tilt: 0.70, scale: 0.45, layer: 3 },
-      { count: 9, radius: 0.205, height: 0.00, tilt: 0.78, scale: 0.50, layer: 4 },
-      { count: 10, radius: 0.238, height: -0.03, tilt: 0.85, scale: 0.54, layer: 4 },
-      // Outermost
-      { count: 10, radius: 0.275, height: -0.06, tilt: 0.92, scale: 0.56, layer: 5 },
-      { count: 11, radius: 0.315, height: -0.09, tilt: 0.97, scale: 0.58, layer: 5 },
-    ];
+    // Use golden angle for true spiral arrangement (like real roses)
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 degrees
+
+    // Total petal count with layer assignments
+    const totalPetals = 85;
 
     const up = new THREE.Vector3(0, 1, 0);
     const radial = new THREE.Vector3();
+    const tangent = new THREE.Vector3();
     const petalDir = new THREE.Vector3();
     const baseQuat = new THREE.Quaternion();
     const rollQuat = new THREE.Quaternion();
     const finalQuat = new THREE.Quaternion();
     const euler = new THREE.Euler();
 
-    let whorlOffset = 0;
+    for (let i = 0; i < totalPetals; i++) {
+      // Normalized position (0 = center, 1 = outer)
+      const t = i / (totalPetals - 1);
 
-    whorls.forEach((whorl) => {
-      whorlOffset += Math.PI / whorl.count * 0.8;
+      // Golden angle spiral - consistent direction, no zig-zag
+      const angle = i * goldenAngle;
 
-      for (let i = 0; i < whorl.count; i++) {
-        const angleBase = (i / whorl.count) * Math.PI * 2 + whorlOffset;
-        const angle = angleBase + (rand() - 0.5) * 0.12;
+      // Radius grows with sqrt for even petal distribution (like sunflower seeds)
+      const baseRadius = Math.sqrt(t) * 0.32;
+      const radius = baseRadius * (0.95 + rand() * 0.1);
 
-        const radiusVar = whorl.radius * (0.94 + rand() * 0.12);
-        const heightVar = whorl.height + (rand() - 0.5) * 0.015;
-        const scaleVar = whorl.scale * (0.92 + rand() * 0.16);
+      // Height decreases from center outward
+      const height = 0.24 - t * 0.34 + (rand() - 0.5) * 0.01;
 
-        radial.set(Math.cos(angle), 0, Math.sin(angle));
+      // Tilt increases outward (center petals upright, outer petals open)
+      const tilt = 0.05 + Math.pow(t, 0.7) * 0.95;
 
-        const upComponent = Math.cos(whorl.tilt * Math.PI * 0.5);
-        const outComponent = Math.sin(whorl.tilt * Math.PI * 0.5);
-        const downComponent = whorl.layer >= 4 ? (whorl.tilt - 0.8) * 0.35 : 0;
+      // Scale increases outward
+      const scale = (0.06 + t * 0.55) * (0.92 + rand() * 0.16);
 
-        petalDir.set(
-          radial.x * outComponent,
-          upComponent - downComponent,
-          radial.z * outComponent
-        ).normalize();
+      // Layer for geometry/material selection
+      const layer = Math.min(5, Math.floor(t * 6));
 
-        baseQuat.setFromUnitVectors(up, petalDir);
+      // Radial direction (pointing outward from center)
+      radial.set(Math.cos(angle), 0, Math.sin(angle));
+      // Tangent direction (perpendicular, for spiral lean)
+      tangent.set(-Math.sin(angle), 0, Math.cos(angle));
 
-        const rollAngle = angle + Math.PI + (rand() - 0.5) * 0.25;
-        rollQuat.setFromAxisAngle(petalDir, rollAngle);
+      // Petal direction: blend of up, outward, and spiral lean
+      const upComponent = Math.cos(tilt * Math.PI * 0.5);
+      const outComponent = Math.sin(tilt * Math.PI * 0.5);
 
-        finalQuat.copy(rollQuat).multiply(baseQuat);
-        euler.setFromQuaternion(finalQuat, "XYZ");
+      // Add spiral lean - inner petals lean INTO the spiral direction
+      // This creates the smooth spiral effect
+      const spiralLean = (1 - t) * 0.4; // Stronger lean for inner petals
 
-        // 4 variants per layer, 6 layers
-        const geometryIndex = Math.min(
-          whorl.layer * 4 + Math.floor(rand() * 4),
-          realisticPetalGeometries.length - 1
-        );
+      petalDir.set(
+        radial.x * outComponent + tangent.x * spiralLean,
+        upComponent,
+        radial.z * outComponent + tangent.z * spiralLean
+      ).normalize();
 
-        // More gradual color transition
-        const materialIndex = Math.min(
-          realisticPetalMaterials.length - 1,
-          Math.floor((whorl.layer / 5) * realisticPetalMaterials.length)
-        );
+      baseQuat.setFromUnitVectors(up, petalDir);
 
-        petalConfigs.push({
-          position: [
-            Math.cos(angle) * radiusVar,
-            heightVar,
-            Math.sin(angle) * radiusVar,
-          ],
-          rotation: [euler.x, euler.y, euler.z],
-          scale: scaleVar,
-          geometryIndex,
-          materialIndex,
-          openness: whorl.tilt,
-        });
-      }
-    });
+      // Roll angle - petal's concave side faces CENTER, wrapping around it
+      // angle + Math.PI makes petal face inward toward center
+      // Small spiral offset so petals overlap in spiral pattern
+      const spiralWrapOffset = (1 - t) * 0.3; // Inner petals wrap more
+      const rollAngle = angle + Math.PI + spiralWrapOffset + (rand() - 0.5) * 0.1;
+      rollQuat.setFromAxisAngle(petalDir, rollAngle);
+
+      finalQuat.copy(rollQuat).multiply(baseQuat);
+      euler.setFromQuaternion(finalQuat, "XYZ");
+
+      // Geometry and material based on layer
+      const geometryIndex = Math.min(
+        layer * 4 + Math.floor(rand() * 4),
+        realisticPetalGeometries.length - 1
+      );
+
+      const materialIndex = Math.min(
+        realisticPetalMaterials.length - 1,
+        Math.floor((layer / 5) * realisticPetalMaterials.length)
+      );
+
+      petalConfigs.push({
+        position: [
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius,
+        ],
+        rotation: [euler.x, euler.y, euler.z],
+        scale,
+        geometryIndex,
+        materialIndex,
+        openness: tilt,
+      });
+    }
 
     return petalConfigs;
   }, []);

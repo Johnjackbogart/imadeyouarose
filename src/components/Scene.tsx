@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   Float,
   OrbitControls,
@@ -9,6 +9,7 @@ import {
 import { useThree } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
+import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import GlassRose from "./GlassRose";
 import RealisticRose from "./RealisticRose";
@@ -79,35 +80,24 @@ function GlassCube({ isMobile = false }: { isMobile?: boolean }) {
       position={[0, 0.8, 0]}
       renderOrder={100}
     >
-      {isMobile ? (
-        <meshStandardMaterial
-          color="#ffffff"
-          roughness={0.15}
-          metalness={0}
-          transparent
-          opacity={0.14}
-          depthWrite={false}
-        />
-      ) : (
-        <MeshTransmissionMaterial
-          samples={4}
-          resolution={256}
-          transmission={1}
-          roughness={0}
-          thickness={0.2}
-          ior={1.5}
-          chromaticAberration={0.02}
-          envMapIntensity={0.05}
-          anisotropy={0}
-          distortion={0}
-          distortionScale={0}
-          temporalDistortion={0}
-          attenuationDistance={10}
-          attenuationColor="#ffffff"
-          color="#ffffff"
-          transmissionSampler
-        />
-      )}
+      <MeshTransmissionMaterial
+        samples={isMobile ? 1 : 4}
+        resolution={isMobile ? 256 : 256}
+        transmission={1}
+        roughness={isMobile ? 0.08 : 0}
+        thickness={isMobile ? 0.12 : 0.2}
+        ior={isMobile ? 1.35 : 1.5}
+        chromaticAberration={isMobile ? 0 : 0.02}
+        envMapIntensity={isMobile ? 0.02 : 0.05}
+        anisotropy={0}
+        distortion={0}
+        distortionScale={0}
+        temporalDistortion={0}
+        attenuationDistance={10}
+        attenuationColor="#ffffff"
+        color="#ffffff"
+        transmissionSampler={!isMobile}
+      />
     </RoundedBox>
   );
 }
@@ -592,6 +582,100 @@ function LowPolyMountains() {
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+// Initials stamped on the mountain
+function MountainInitials() {
+  const groupRef = useRef<THREE.Group>(null);
+  const [shapes, setShapes] = useState<THREE.Shape[]>([]);
+
+  useEffect(() => {
+    const loader = new SVGLoader();
+    loader.load('/new1.svg', (data) => {
+      const loadedShapes: THREE.Shape[] = [];
+      data.paths.forEach((path) => {
+        const pathShapes = SVGLoader.createShapes(path);
+        loadedShapes.push(...pathShapes);
+      });
+      setShapes(loadedShapes);
+    });
+  }, []);
+
+  const geometry = useMemo(() => {
+    if (shapes.length === 0) return null;
+
+    const group = new THREE.Group();
+
+    shapes.forEach((shape) => {
+      const geo = new THREE.ExtrudeGeometry(shape, {
+        depth: 8,
+        bevelEnabled: true,
+        bevelThickness: 1,
+        bevelSize: 1,
+        bevelSegments: 2,
+      });
+      group.add(new THREE.Mesh(geo));
+    });
+
+    // Merge all geometries
+    const mergedGeo = new THREE.BufferGeometry();
+    const positions: number[] = [];
+    const normals: number[] = [];
+
+    group.children.forEach((child) => {
+      const mesh = child as THREE.Mesh;
+      const geo = mesh.geometry;
+      const pos = geo.attributes.position;
+      const norm = geo.attributes.normal;
+
+      for (let i = 0; i < pos.count; i++) {
+        positions.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+        normals.push(norm.getX(i), norm.getY(i), norm.getZ(i));
+      }
+    });
+
+    mergedGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    mergedGeo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+
+    // Center and scale the geometry
+    mergedGeo.computeBoundingBox();
+    const box = mergedGeo.boundingBox!;
+    const centerX = (box.min.x + box.max.x) / 2;
+    const centerY = (box.min.y + box.max.y) / 2;
+    mergedGeo.translate(-centerX, -centerY, 0);
+
+    return mergedGeo;
+  }, [shapes]);
+
+  if (!geometry) return null;
+
+  // Position on a mountain in the back - visible from the default camera angle
+  // Mountains are at radius ~18-22, we'll place this on one facing the camera
+  const mountainAngle = Math.PI * 1.15; // Back-left area
+  const mountainRadius = 19;
+  const mountainHeight = 4;
+
+  return (
+    <group
+      ref={groupRef}
+      position={[
+        Math.cos(mountainAngle) * mountainRadius,
+        mountainHeight,
+        Math.sin(mountainAngle) * mountainRadius,
+      ]}
+      rotation={[0, -mountainAngle + Math.PI, 0]} // Face toward center
+      scale={0.012} // Scale down the SVG
+    >
+      <mesh geometry={geometry}>
+        <meshStandardMaterial
+          color="#1a1a2e"
+          roughness={0.8}
+          metalness={0.1}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
     </group>
   );
 }
@@ -1468,6 +1552,7 @@ export default function Scene({ isMobile = false, useRealisticRose = false }: Sc
 
       {/* Mountain range */}
       <LowPolyMountains />
+      <MountainInitials />
 
       {!isMobile && (
         <Stars
