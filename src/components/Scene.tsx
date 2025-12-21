@@ -1479,15 +1479,48 @@ function SunsetClouds() {
   );
 }
 
+// Helper to clear a group and remove all children from the scene
+function clearGroup(group: THREE.Group) {
+  // Recursively clear all nested groups and remove from parent
+  const objectsToRemove: THREE.Object3D[] = [];
+
+  group.traverse((object) => {
+    if (object !== group) {
+      objectsToRemove.push(object);
+    }
+  });
+
+  // Remove all objects from their parents
+  objectsToRemove.forEach((object) => {
+    if (object.parent) {
+      object.parent.remove(object);
+    }
+  });
+}
+
 function RoseComponent({ roseType }: { roseType: RoseType }) {
-  switch (roseType) {
-    case "realistic":
-      return <RealisticRose />;
-    case "spiral":
-      return <SpiralRose />;
-    default:
-      return <GlassRose />;
-  }
+  const groupRef = useRef<THREE.Group>(null);
+
+  // Cleanup when rose type changes - clear all children from the group
+  useEffect(() => {
+    const currentGroup = groupRef.current;
+
+    return () => {
+      if (currentGroup) {
+        clearGroup(currentGroup);
+      }
+    };
+  }, [roseType]);
+
+  // Use key to force complete remount when rose type changes
+  // This ensures React properly unmounts old components and their useFrame hooks
+  return (
+    <group ref={groupRef} key={roseType}>
+      {roseType === "realistic" && <RealisticRose />}
+      {roseType === "spiral" && <SpiralRose />}
+      {roseType === "glass" && <GlassRose />}
+    </group>
+  );
 }
 
 export default function Scene({ isMobile = false, roseType = "glass" }: SceneProps) {
