@@ -5,6 +5,8 @@ import {
   Stars,
   MeshTransmissionMaterial,
   RoundedBox,
+  Cloud,
+  Clouds,
 } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
@@ -1403,6 +1405,87 @@ function LowPolyRiver() {
   );
 }
 
+// Volumetric clouds using drei
+function DreiFog({ isMobile = false }: { isMobile?: boolean }) {
+  return (
+    <Clouds material={THREE.MeshBasicMaterial} frustumCulled={false}>
+      {/* Clouds near sun - warm golden/orange */}
+      <Cloud
+        position={[-20, 12, -25]}
+        speed={0.1}
+        opacity={0.5}
+        bounds={[15, 3, 8]}
+        segments={isMobile ? 10 : 20}
+        color="#ffcc88"
+      />
+      <Cloud
+        position={[-15, 15, -20]}
+        speed={0.15}
+        opacity={0.4}
+        bounds={[12, 2, 6]}
+        segments={isMobile ? 8 : 16}
+        color="#ffaa66"
+      />
+      
+      {/* Mid-sky clouds - pink/purple tones */}
+      <Cloud
+        position={[15, 14, -15]}
+        speed={0.12}
+        opacity={0.45}
+        bounds={[10, 2.5, 5]}
+        segments={isMobile ? 8 : 14}
+        color="#ff99aa"
+      />
+      <Cloud
+        position={[-10, 18, 10]}
+        speed={0.08}
+        opacity={0.35}
+        bounds={[14, 3, 7]}
+        segments={isMobile ? 10 : 18}
+        color="#cc88bb"
+      />
+      
+      {!isMobile && (
+        <>
+          {/* Additional clouds for desktop */}
+          <Cloud
+            position={[20, 10, -30]}
+            speed={0.1}
+            opacity={0.5}
+            bounds={[18, 4, 10]}
+            segments={20}
+            color="#ffbb77"
+          />
+          <Cloud
+            position={[0, 20, -25]}
+            speed={0.06}
+            opacity={0.3}
+            bounds={[20, 3, 10]}
+            segments={16}
+            color="#ddaacc"
+          />
+          <Cloud
+            position={[-25, 16, 5]}
+            speed={0.09}
+            opacity={0.4}
+            bounds={[12, 2, 6]}
+            segments={14}
+            color="#ff8899"
+          />
+          <Cloud
+            position={[25, 12, 15]}
+            speed={0.11}
+            opacity={0.35}
+            bounds={[10, 2, 5]}
+            segments={12}
+            color="#ffaa88"
+          />
+        </>
+      )}
+    </Clouds>
+  );
+}
+
 // Sunset-colored clouds
 function SunsetClouds() {
   const clouds = useMemo(() => {
@@ -1598,8 +1681,11 @@ export default function Scene({ isMobile = false, roseType = "glass" }: ScenePro
       {/* Sun setting over mountains */}
       <LowPolySun />
 
-      {/* Sunset clouds */}
+      {/* Sunset clouds - low poly style */}
       <SunsetClouds />
+      
+      {/* Volumetric drei clouds */}
+      <DreiFog isMobile={isMobile} />
 
       {/* Mountain range */}
       <LowPolyMountains />
