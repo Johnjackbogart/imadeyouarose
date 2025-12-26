@@ -274,3 +274,57 @@
     background-size: 20px;
   }
 }
+
+.garbage-selector {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 15;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  font-size: 0;
+  color: transparent;
+  background: rgba(256, 256, 256, 0.4);
+  border: 1px solid rgba(255, 143, 165, 0.4);
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("/garbage.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 24px;
+}
+
+.garbage-selector:hover {
+  background-color: #51921e44;
+  border-color: #51921e;
+  box-shadow: 0 0 20px rgba(255, 105, 180, 0.4);
+}
+
+.garbage-selector:focus {
+  background-color: #51921e44;
+  border-color: #51921e;
+  outline: none;
+  box-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
+}
+
+.garbage-selector option {
+  background: rgba(40, 10, 20, 0.95);
+  color: transparent;
+  padding: 10px;
+}
+
+@media (max-width: 768px) {
+  .garbage-selector {
+    top: 15px;
+    left: 15px;
+    width: 40px;
+    height: 40px;
+    background-size: 18px;
+  }
+}

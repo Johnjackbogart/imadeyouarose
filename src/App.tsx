@@ -88,21 +88,25 @@ function App() {
         <h1>I'm an idiot!</h1>
       </div>
       {sceneVisible && (
-        <select
-          className="rose-selector"
-          value={roseType}
-          onChange={(e) => {
-            const newRose = e.target.value as RoseType;
-            setRoseType(newRose);
-            setRoseInURL(newRose);
-          }}
-        >
-          <option value="spiral">Spiral Rose</option>
-          <option value="realistic">Realistic Rose</option>
-          <option value="glass">Glass Rose</option>
-          <option value="iridescent">Iridescent Rose</option>
-          <option value="storm">Storm Rose</option>
-        </select>
+        <>
+          <select
+            className="garbage-selector"
+            value={roseType}
+            onChange={(e) => {
+              const newRose = e.target.value as RoseType;
+              setRoseType(newRose);
+              setRoseInURL(newRose);
+            }}
+          >
+            <option value="spiral">Spiral Rose</option>
+            <option value="realistic">Realistic Rose</option>
+            <option value="glass">Glass Rose</option>
+            <option value="iridescent">Iridescent Rose</option>
+            <option value="storm">Storm Rose</option>
+          </select>
+          <select className="rose-selector">
+          </select>
+        </>
       )}
     </div>
   );
