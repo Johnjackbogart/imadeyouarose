@@ -1758,10 +1758,10 @@ export default function Scene({
           )}
         </Float>
 
-        <GlassCube isMobile={isMobile} />
-        <RoseBaseBush isMobile={isMobile} />
-        <Sparkles count={isMobile ? 40 : 80} radius={2.5} />
-        <MysticalSmoke />
+        <FlowerDisplay
+          isMobile={isMobile}
+          show={activeFlower === "tulip" || isFlowerType(roseType)}
+        />
       </Suspense>
 
       <OrbitControls

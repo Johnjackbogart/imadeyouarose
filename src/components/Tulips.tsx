@@ -176,7 +176,6 @@ function createLeafGeometry() {
   const position = geometry.attributes.position as THREE.BufferAttribute;
   const vertex = new THREE.Vector3();
   const halfHeight = 1.25 / 2;
-  const halfWidth = 0.5 / 2;
 
   for (let i = 0; i < position.count; i += 1) {
     vertex.fromBufferAttribute(position, i);
@@ -651,7 +650,7 @@ export function IridescentTulip() {
         metalness: 0.18,
         iridescence: 0.9,
         iridescenceIOR: 1.6,
-        iridescenceThicknessRange: [140, 320],
+        iridescenceThicknessRange: new THREE.Vector2(140, 320),
         clearcoat: 0.5,
         clearcoatRoughness: 0.2,
         side: THREE.DoubleSide,
@@ -668,7 +667,7 @@ export function IridescentTulip() {
         metalness: 0.2,
         iridescence: 0.85,
         iridescenceIOR: 1.6,
-        iridescenceThicknessRange: [160, 360],
+        iridescenceThicknessRange: new THREE.Vector2(160, 360),
         clearcoat: 0.45,
         clearcoatRoughness: 0.22,
         side: THREE.DoubleSide,

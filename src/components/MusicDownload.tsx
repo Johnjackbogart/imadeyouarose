@@ -51,7 +51,7 @@ export default function MusicDownload() {
             e.currentTarget.style.boxShadow = "0 8px 32px rgba(81, 146, 30, 0.5)";
           }}
         >
-          Download Song
+          slug.mp3
         </button>
       </Html>
     </group>

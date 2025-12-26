@@ -107,7 +107,12 @@ function App() {
         dpr={isMobile ? 1 : [1, 2]}
         onCreated={() => setCanvasReady(true)}
       >
-        <Scene isMobile={isMobile} roseType={ideaType} />
+        <Scene
+          isMobile={isMobile}
+          roseType={ideaType}
+          tulipType={tulipType}
+          activeFlower={activeFlower}
+        />
       </Canvas>
       <SunLoader
         canvasReady={canvasReady}
@@ -120,14 +125,16 @@ function App() {
         <>
           <select
             className="garbage-selector"
-            value={ideaType}
+            value={activeFlower === "rose" ? ideaType : ""}
             onChange={(e) => {
               const newIdea = e.target.value as IdeaType;
               setIdeaType(newIdea);
               setIdeaInURL(newIdea);
+              setActiveFlower("rose");
             }}
           >
-            <option value="music">Music</option>
+            <option value="" disabled hidden></option>
+            <option value="music">you inspired these songs</option>
             <option value="playlists">Playlists</option>
             <option value="spiral">Spiral Rose</option>
             <option value="realistic">Realistic Rose</option>
@@ -135,7 +142,22 @@ function App() {
             <option value="iridescent">Iridescent Rose</option>
             <option value="storm">Storm Rose</option>
           </select>
-          <select className="rose-selector">
+          <select
+            className="rose-selector"
+            value={activeFlower === "tulip" ? tulipType : ""}
+            onChange={(e) => {
+              const newTulip = e.target.value as TulipType;
+              setTulipType(newTulip);
+              setTulipInURL(newTulip);
+              setActiveFlower("tulip");
+            }}
+          >
+            <option value="" disabled hidden></option>
+            <option value="spiral">Spiral Tulip</option>
+            <option value="realistic">Realistic Tulip</option>
+            <option value="glass">Glass Tulip</option>
+            <option value="iridescent">Iridescent Tulip</option>
+            <option value="storm">Storm Tulip</option>
           </select>
         </>
       )}
