@@ -5,7 +5,9 @@ import SunLoader from "./components/SunLoader";
 import "./App.css";
 
 type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
-type IdeaType = RoseType | "music";
+type IdeaType = RoseType | "music" | "playlists";
+type TulipType = RoseType;
+type FlowerMode = "rose" | "tulip";
 
 const VALID_IDEAS: IdeaType[] = [
   "glass",
@@ -14,6 +16,14 @@ const VALID_IDEAS: IdeaType[] = [
   "iridescent",
   "storm",
   "music",
+  "playlists",
+];
+const VALID_TULIPS: TulipType[] = [
+  "glass",
+  "realistic",
+  "spiral",
+  "iridescent",
+  "storm",
 ];
 
 function getIdeaFromURL(): IdeaType {
@@ -31,6 +41,21 @@ function setIdeaInURL(idea: IdeaType) {
   window.history.replaceState({}, "", url.toString());
 }
 
+function getTulipFromURL(): TulipType {
+  const params = new URLSearchParams(window.location.search);
+  const tulip = params.get("tulip");
+  if (tulip && VALID_TULIPS.includes(tulip as TulipType)) {
+    return tulip as TulipType;
+  }
+  return "glass";
+}
+
+function setTulipInURL(tulip: TulipType) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("tulip", tulip);
+  window.history.replaceState({}, "", url.toString());
+}
+
 function App() {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") {
@@ -41,6 +66,8 @@ function App() {
   const [canvasReady, setCanvasReady] = useState(false);
   const [sceneVisible, setSceneVisible] = useState(false);
   const [ideaType, setIdeaType] = useState<IdeaType>(getIdeaFromURL);
+  const [tulipType, setTulipType] = useState<TulipType>(getTulipFromURL);
+  const [activeFlower, setActiveFlower] = useState<FlowerMode>("rose");
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -101,6 +128,7 @@ function App() {
             }}
           >
             <option value="music">Music</option>
+            <option value="playlists">Playlists</option>
             <option value="spiral">Spiral Rose</option>
             <option value="realistic">Realistic Rose</option>
             <option value="glass">Glass Rose</option>

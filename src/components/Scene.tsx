@@ -18,16 +18,27 @@ import IridescentRose from "./IridescentRose";
 import StormRose from "./StormRose";
 import RealisticRose from "./RealisticRose";
 import SpiralRose from "./SpiralRose";
+import {
+  GlassTulip,
+  IridescentTulip,
+  RealisticTulip,
+  SpiralTulip,
+  StormTulip,
+} from "./Tulips";
 import Sparkles from "./Sparkles";
 import MysticalSmoke from "./MysticalSmoke";
 import MusicDownload from "./MusicDownload";
+import Playlists from "./Playlists";
 
 type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
-type IdeaType = RoseType | "music";
+type TulipType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
+type IdeaType = RoseType | "music" | "playlists";
 
 type SceneProps = {
   isMobile?: boolean;
   roseType?: IdeaType;
+  tulipType?: TulipType;
+  activeFlower?: "rose" | "tulip";
 };
 
 function Lights() {
@@ -1577,13 +1588,54 @@ function IdeaComponent({ ideaType }: { ideaType: IdeaType }) {
       {ideaType === "iridescent" && <IridescentRose />}
       {ideaType === "storm" && <StormRose />}
       {ideaType === "music" && <MusicDownload />}
+      {ideaType === "playlists" && <Playlists />}
     </group>
   );
 }
 
-export default function Scene({ isMobile = false, roseType = "glass" }: SceneProps) {
+function TulipComponent({ tulipType }: { tulipType: TulipType }) {
+  return (
+    <group key={`tulip-${tulipType}`}>
+      {tulipType === "realistic" && <RealisticTulip />}
+      {tulipType === "spiral" && <SpiralTulip />}
+      {tulipType === "glass" && <GlassTulip />}
+      {tulipType === "iridescent" && <IridescentTulip />}
+      {tulipType === "storm" && <StormTulip />}
+    </group>
+  );
+}
+
+function isFlowerType(ideaType: IdeaType): boolean {
+  return ideaType !== "music" && ideaType !== "playlists";
+}
+
+function FlowerDisplay({ isMobile, show }: { isMobile: boolean; show: boolean }) {
+  if (!show) return null;
+
+  return (
+    <>
+      <GlassCube isMobile={isMobile} />
+      <RoseBaseBush isMobile={isMobile} />
+      <Sparkles count={isMobile ? 40 : 80} radius={2.5} />
+      <MysticalSmoke />
+    </>
+  );
+}
+
+export default function Scene({
+  isMobile = false,
+  roseType = "glass",
+  tulipType = "glass",
+  activeFlower = "rose",
+}: SceneProps) {
   const { camera } = useThree();
   const controls = useRef<OrbitControlsImpl | null>(null);
+  const floatProfile = activeFlower === "tulip" ? tulipType : roseType;
+  const calmFloat =
+    floatProfile === "iridescent" ||
+    floatProfile === "storm" ||
+    floatProfile === "music" ||
+    floatProfile === "playlists";
 
   useEffect(() => {
     const position = isMobile ? [0, 2.6, 7.8] : [0, 1, 8];
@@ -1695,11 +1747,15 @@ export default function Scene({ isMobile = false, roseType = "glass" }: ScenePro
 
         <Float
           speed={1}
-          rotationIntensity={roseType === "iridescent" || roseType === "storm" || roseType === "music" ? 0 : 0.2}
-          floatIntensity={roseType === "iridescent" || roseType === "storm" || roseType === "music" ? 0.18 : 0.3}
+          rotationIntensity={calmFloat ? 0 : 0.2}
+          floatIntensity={calmFloat ? 0.18 : 0.3}
           floatingRange={[-0.05, 0.05]}
         >
-          <IdeaComponent ideaType={roseType} />
+          {activeFlower === "tulip" ? (
+            <TulipComponent tulipType={tulipType} />
+          ) : (
+            <IdeaComponent ideaType={roseType} />
+          )}
         </Float>
 
         <GlassCube isMobile={isMobile} />
