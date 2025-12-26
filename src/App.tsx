@@ -6,7 +6,13 @@ import "./App.css";
 
 type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
 
-const VALID_ROSES: RoseType[] = ["glass", "realistic", "spiral", "iridescent", "storm"];
+const VALID_ROSES: RoseType[] = [
+  "glass",
+  "realistic",
+  "spiral",
+  "iridescent",
+  "storm",
+];
 
 function getRoseFromURL(): RoseType {
   const params = new URLSearchParams(window.location.search);
@@ -49,7 +55,11 @@ function App() {
 
   const camera = useMemo(
     () => ({
-      position: (isMobile ? [-5, 14, 12] : [-15, 10, 8]) as [number, number, number],
+      position: (isMobile ? [-5, 14, 12] : [-15, 10, 8]) as [
+        number,
+        number,
+        number,
+      ],
       fov: 60,
     }),
     [isMobile],
@@ -75,7 +85,7 @@ function App() {
         onComplete={() => setSceneVisible(true)}
       />
       <div className={`message${sceneVisible ? " is-hidden" : ""}`}>
-        <h1>i made this for you</h1>
+        <h1>I'm an idiot!</h1>
       </div>
       {sceneVisible && (
         <select
