@@ -1,7 +1,19 @@
 import { Html } from "@react-three/drei";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return isMobile;
+}
 
 const playlists = [
   {
@@ -26,6 +38,7 @@ const playlists = [
 
 export default function Playlists() {
   const groupRef = useRef<THREE.Group>(null);
+  const isMobile = useIsMobile();
 
   useFrame((state) => {
     if (groupRef.current) {
@@ -35,18 +48,20 @@ export default function Playlists() {
 
   return (
     <group ref={groupRef} position={[0, 1.5, 0]}>
-      <Html center transform distanceFactor={10}>
+      <Html center transform distanceFactor={isMobile ? 8 : 10}>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
-            padding: "16px",
+            gap: isMobile ? "8px" : "12px",
+            padding: isMobile ? "12px" : "16px",
             background: "linear-gradient(135deg, rgba(81, 146, 30, 0.85), rgba(139, 69, 19, 0.85))",
-            borderRadius: "16px",
+            borderRadius: isMobile ? "12px" : "16px",
             border: "2px solid #ffb509",
             backdropFilter: "blur(8px)",
             boxShadow: "0 8px 32px rgba(81, 146, 30, 0.5)",
+            maxWidth: isMobile ? "280px" : "none",
+            width: isMobile ? "calc(100vw - 40px)" : "auto",
           }}
         >
           <h3
@@ -54,7 +69,7 @@ export default function Playlists() {
               margin: 0,
               color: "#ffb509",
               fontFamily: "Georgia, serif",
-              fontSize: "14px",
+              fontSize: isMobile ? "12px" : "14px",
               letterSpacing: "0.15em",
               textAlign: "center",
               textShadow: "0 2px 4px rgba(0,0,0,0.4)",
@@ -70,7 +85,7 @@ export default function Playlists() {
               rel="noopener noreferrer"
               style={{
                 display: "block",
-                padding: "12px 16px",
+                padding: isMobile ? "10px 12px" : "12px 16px",
                 background: "rgba(255, 248, 231, 0.15)",
                 borderRadius: "8px",
                 textDecoration: "none",
@@ -90,10 +105,11 @@ export default function Playlists() {
                 style={{
                   color: "#fff8e7",
                   fontFamily: "Georgia, serif",
-                  fontSize: "13px",
+                  fontSize: isMobile ? "11px" : "13px",
                   fontWeight: "bold",
                   marginBottom: "4px",
                   textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                  wordBreak: "break-word",
                 }}
               >
                 {playlist.name}
@@ -102,7 +118,7 @@ export default function Playlists() {
                 style={{
                   color: "rgba(255, 248, 231, 0.7)",
                   fontFamily: "Georgia, serif",
-                  fontSize: "11px",
+                  fontSize: isMobile ? "10px" : "11px",
                 }}
               >
                 {playlist.songs} songs · {playlist.duration}
