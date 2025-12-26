@@ -20,12 +20,14 @@ import RealisticRose from "./RealisticRose";
 import SpiralRose from "./SpiralRose";
 import Sparkles from "./Sparkles";
 import MysticalSmoke from "./MysticalSmoke";
+import MusicDownload from "./MusicDownload";
 
 type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
+type IdeaType = RoseType | "music";
 
 type SceneProps = {
   isMobile?: boolean;
-  roseType?: RoseType;
+  roseType?: IdeaType;
 };
 
 function Lights() {
@@ -1564,16 +1566,17 @@ function SunsetClouds() {
   );
 }
 
-function RoseComponent({ roseType }: { roseType: RoseType }) {
-  // Use key to force complete remount when rose type changes
+function IdeaComponent({ ideaType }: { ideaType: IdeaType }) {
+  // Use key to force complete remount when type changes
   // This ensures React properly unmounts old components and their useFrame hooks
   return (
-    <group key={roseType}>
-      {roseType === "realistic" && <RealisticRose />}
-      {roseType === "spiral" && <SpiralRose />}
-      {roseType === "glass" && <GlassRose />}
-      {roseType === "iridescent" && <IridescentRose />}
-      {roseType === "storm" && <StormRose />}
+    <group key={ideaType}>
+      {ideaType === "realistic" && <RealisticRose />}
+      {ideaType === "spiral" && <SpiralRose />}
+      {ideaType === "glass" && <GlassRose />}
+      {ideaType === "iridescent" && <IridescentRose />}
+      {ideaType === "storm" && <StormRose />}
+      {ideaType === "music" && <MusicDownload />}
     </group>
   );
 }
@@ -1692,11 +1695,11 @@ export default function Scene({ isMobile = false, roseType = "glass" }: ScenePro
 
         <Float
           speed={1}
-          rotationIntensity={roseType === "iridescent" || roseType === "storm" ? 0 : 0.2}
-          floatIntensity={roseType === "iridescent" || roseType === "storm" ? 0.18 : 0.3}
+          rotationIntensity={roseType === "iridescent" || roseType === "storm" || roseType === "music" ? 0 : 0.2}
+          floatIntensity={roseType === "iridescent" || roseType === "storm" || roseType === "music" ? 0.18 : 0.3}
           floatingRange={[-0.05, 0.05]}
         >
-          <RoseComponent roseType={roseType} />
+          <IdeaComponent ideaType={roseType} />
         </Float>
 
         <GlassCube isMobile={isMobile} />

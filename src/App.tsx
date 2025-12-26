@@ -5,27 +5,29 @@ import SunLoader from "./components/SunLoader";
 import "./App.css";
 
 type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
+type IdeaType = RoseType | "music";
 
-const VALID_ROSES: RoseType[] = [
+const VALID_IDEAS: IdeaType[] = [
   "glass",
   "realistic",
   "spiral",
   "iridescent",
   "storm",
+  "music",
 ];
 
-function getRoseFromURL(): RoseType {
+function getIdeaFromURL(): IdeaType {
   const params = new URLSearchParams(window.location.search);
-  const rose = params.get("rose");
-  if (rose && VALID_ROSES.includes(rose as RoseType)) {
-    return rose as RoseType;
+  const idea = params.get("idea");
+  if (idea && VALID_IDEAS.includes(idea as IdeaType)) {
+    return idea as IdeaType;
   }
-  return "spiral";
+  return "music";
 }
 
-function setRoseInURL(rose: RoseType) {
+function setIdeaInURL(idea: IdeaType) {
   const url = new URL(window.location.href);
-  url.searchParams.set("rose", rose);
+  url.searchParams.set("idea", idea);
   window.history.replaceState({}, "", url.toString());
 }
 
@@ -38,7 +40,7 @@ function App() {
   });
   const [canvasReady, setCanvasReady] = useState(false);
   const [sceneVisible, setSceneVisible] = useState(false);
-  const [roseType, setRoseType] = useState<RoseType>(getRoseFromURL);
+  const [ideaType, setIdeaType] = useState<IdeaType>(getIdeaFromURL);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -78,7 +80,7 @@ function App() {
         dpr={isMobile ? 1 : [1, 2]}
         onCreated={() => setCanvasReady(true)}
       >
-        <Scene isMobile={isMobile} roseType={roseType} />
+        <Scene isMobile={isMobile} roseType={ideaType} />
       </Canvas>
       <SunLoader
         canvasReady={canvasReady}
@@ -91,13 +93,14 @@ function App() {
         <>
           <select
             className="garbage-selector"
-            value={roseType}
+            value={ideaType}
             onChange={(e) => {
-              const newRose = e.target.value as RoseType;
-              setRoseType(newRose);
-              setRoseInURL(newRose);
+              const newIdea = e.target.value as IdeaType;
+              setIdeaType(newIdea);
+              setIdeaInURL(newIdea);
             }}
           >
+            <option value="music">Music</option>
             <option value="spiral">Spiral Rose</option>
             <option value="realistic">Realistic Rose</option>
             <option value="glass">Glass Rose</option>
