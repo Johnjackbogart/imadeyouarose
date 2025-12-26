@@ -6,7 +6,7 @@ import "./App.css";
 
 type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
 type IdeaType = RoseType | "music" | "playlists";
-type TulipType = RoseType;
+type TulipType = RoseType | "rounded";
 type FlowerMode = "rose" | "tulip";
 
 const VALID_IDEAS: IdeaType[] = [
@@ -24,6 +24,7 @@ const VALID_TULIPS: TulipType[] = [
   "spiral",
   "iridescent",
   "storm",
+  "rounded",
 ];
 
 function getIdeaFromURL(): IdeaType {
@@ -158,6 +159,7 @@ function App() {
             <option value="glass">Glass Tulip</option>
             <option value="iridescent">Iridescent Tulip</option>
             <option value="storm">Storm Tulip</option>
+            <option value="rounded">Rounded Tulip</option>
           </select>
         </>
       )}

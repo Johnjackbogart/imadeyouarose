@@ -21,6 +21,7 @@ import SpiralRose from "./SpiralRose";
 import {
   GlassTulip,
   IridescentTulip,
+  RoundedTulip,
   RealisticTulip,
   SpiralTulip,
   StormTulip,
@@ -31,7 +32,13 @@ import MusicDownload from "./MusicDownload";
 import Playlists from "./Playlists";
 
 type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
-type TulipType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
+type TulipType =
+  | "glass"
+  | "realistic"
+  | "spiral"
+  | "iridescent"
+  | "storm"
+  | "rounded";
 type IdeaType = RoseType | "music" | "playlists";
 
 type SceneProps = {
@@ -1601,6 +1608,7 @@ function TulipComponent({ tulipType }: { tulipType: TulipType }) {
       {tulipType === "glass" && <GlassTulip />}
       {tulipType === "iridescent" && <IridescentTulip />}
       {tulipType === "storm" && <StormTulip />}
+      {tulipType === "rounded" && <RoundedTulip />}
     </group>
   );
 }

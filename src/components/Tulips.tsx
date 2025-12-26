@@ -10,6 +10,7 @@ type PetalGeometryOptions = {
   flare: number;
   twist: number;
   jitter: number;
+  topRoundness?: number;
 };
 
 type BloomConfig = {
@@ -27,6 +28,7 @@ type BloomConfig = {
   flare: number;
   twist: number;
   jitter: number;
+  topRoundness: number;
   baseY: number;
 };
 
@@ -57,6 +59,7 @@ const BASE_BLOOM: BloomConfig = {
   flare: 0.22,
   twist: 0,
   jitter: 0,
+  topRoundness: 0,
   baseY: 0.9,
 };
 
@@ -96,6 +99,40 @@ const IRIDESCENT_BLOOM: BloomConfig = {
   twist: 0.14,
 };
 
+const ROUNDED_BLOOM: BloomConfig = {
+  ...BASE_BLOOM,
+  outerTilt: 0.26,
+  innerTilt: 0.15,
+  outerHeight: 1.0,
+  innerHeight: 0.82,
+  outerWidth: 0.6,
+  innerWidth: 0.42,
+  curl: 0.14,
+  flare: 0.1,
+  twist: 0.05,
+  topRoundness: 0.6,
+};
+
+// Cupped red tulip - tighter cup formation for realistic closed tulip
+const CUPPED_RED_BLOOM: BloomConfig = {
+  outerCount: 3,
+  innerCount: 3,
+  outerRadius: 0.06,
+  innerRadius: 0.03,
+  outerTilt: 0.12,
+  innerTilt: 0.06,
+  outerWidth: 0.55,
+  outerHeight: 1.15,
+  innerWidth: 0.48,
+  innerHeight: 1.05,
+  curl: 0.4,
+  flare: 0.05,
+  twist: 0,
+  jitter: 0,
+  topRoundness: 0,
+  baseY: 0.9,
+};
+
 const STORM_BLOOM: BloomConfig = {
   ...BASE_BLOOM,
   outerTilt: 0.28,
@@ -127,12 +164,14 @@ function createTulipPetalGeometry({
   flare,
   twist,
   jitter,
+  topRoundness = 0,
 }: PetalGeometryOptions) {
-  const geometry = new THREE.PlaneGeometry(width, height, 10, 14);
+  const geometry = new THREE.PlaneGeometry(width, height, 16, 20);
   const position = geometry.attributes.position as THREE.BufferAttribute;
   const vertex = new THREE.Vector3();
   const halfHeight = height / 2;
   const halfWidth = width / 2;
+  const roundness = Math.max(0, topRoundness);
 
   for (let i = 0; i < position.count; i += 1) {
     vertex.fromBufferAttribute(position, i);
@@ -161,6 +200,18 @@ function createTulipPetalGeometry({
       const n = (noise - Math.floor(noise) - 0.5) * jitter;
       vertex.x += n * 0.05;
       vertex.z += n * 0.08;
+    }
+
+    if (roundness > 0) {
+      const topFade = THREE.MathUtils.smoothstep(t, 0.6, 1);
+      const denom = halfWidth * widthScale;
+      const normalizedX =
+        denom === 0
+          ? 0
+          : THREE.MathUtils.clamp(vertex.x / denom, -1, 1);
+      const cap = Math.sqrt(1 - normalizedX * normalizedX);
+      const drop = roundness * height * (1 - cap);
+      vertex.y -= drop * topFade;
     }
 
     position.setXYZ(i, vertex.x, vertex.y, vertex.z);
@@ -266,6 +317,7 @@ function TulipBloom({
     flare,
     twist,
     jitter,
+    topRoundness,
     baseY,
   } = config;
 
@@ -278,8 +330,9 @@ function TulipBloom({
         flare,
         twist,
         jitter,
+        topRoundness,
       }),
-    [outerWidth, outerHeight, curl, flare, twist, jitter]
+    [outerWidth, outerHeight, curl, flare, twist, jitter, topRoundness]
   );
 
   const innerGeometry = useMemo(
@@ -291,8 +344,9 @@ function TulipBloom({
         flare: flare * 0.55,
         twist: twist * 0.6,
         jitter: jitter * 0.5,
+        topRoundness: topRoundness * 0.85,
       }),
-    [innerWidth, innerHeight, curl, flare, twist, jitter]
+    [innerWidth, innerHeight, curl, flare, twist, jitter, topRoundness]
   );
 
   const cupGeometry = useMemo(() => {
@@ -715,6 +769,79 @@ export function IridescentTulip() {
       centerMaterial={centerMaterial}
       config={IRIDESCENT_BLOOM}
       swayStrength={0.035}
+    />
+  );
+}
+
+export function RoundedTulip() {
+  const petalMap = useTulipTexture("/tulips/tulip5.jpeg");
+
+  const petalMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#f4a7b8",
+        map: petalMap,
+        roughness: 0.6,
+        metalness: 0.08,
+        side: THREE.DoubleSide,
+      }),
+    [petalMap]
+  );
+
+  const innerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#e992a7",
+        map: petalMap,
+        roughness: 0.55,
+        metalness: 0.06,
+        side: THREE.DoubleSide,
+      }),
+    [petalMap]
+  );
+
+  const stemMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#359a69",
+        roughness: 0.55,
+        metalness: 0.1,
+      }),
+    []
+  );
+
+  const leafMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#2f8f5e",
+        roughness: 0.5,
+        metalness: 0.08,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
+
+  const centerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#f6c982",
+        emissive: "#f0b66a",
+        emissiveIntensity: 0.22,
+        roughness: 0.55,
+        metalness: 0.1,
+      }),
+    []
+  );
+
+  return (
+    <Tulip
+      petalMaterial={petalMaterial}
+      innerMaterial={innerMaterial}
+      stemMaterial={stemMaterial}
+      leafMaterial={leafMaterial}
+      centerMaterial={centerMaterial}
+      config={ROUNDED_BLOOM}
+      swayStrength={0.04}
     />
   );
 }
