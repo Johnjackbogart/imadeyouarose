@@ -2,11 +2,12 @@ import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 import Scene from "./components/Scene";
 import SunLoader from "./components/SunLoader";
+import HeartMessage from "./components/HeartMessage";
 import "./App.css";
 
 type RoseType = "glass" | "realistic" | "spiral" | "iridescent" | "storm";
 type IdeaType = RoseType | "music" | "playlists";
-type TulipType = RoseType | "rounded";
+type TulipType = RoseType | "rounded" | "cupped-red";
 type FlowerMode = "rose" | "tulip";
 
 const VALID_IDEAS: IdeaType[] = [
@@ -25,6 +26,7 @@ const VALID_TULIPS: TulipType[] = [
   "iridescent",
   "storm",
   "rounded",
+  "cupped-red",
 ];
 
 function getIdeaFromURL(): IdeaType {
@@ -48,7 +50,7 @@ function getTulipFromURL(): TulipType {
   if (tulip && VALID_TULIPS.includes(tulip as TulipType)) {
     return tulip as TulipType;
   }
-  return "glass";
+  return "cupped-red";
 }
 
 function setTulipInURL(tulip: TulipType) {
@@ -160,7 +162,9 @@ function App() {
             <option value="iridescent">Iridescent Tulip</option>
             <option value="storm">Storm Tulip</option>
             <option value="rounded">Rounded Tulip</option>
+            <option value="cupped-red">Cupped Red Tulip</option>
           </select>
+          <HeartMessage />
         </>
       )}
     </div>

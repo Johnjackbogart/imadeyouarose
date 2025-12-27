@@ -25,6 +25,7 @@ import {
   RealisticTulip,
   SpiralTulip,
   StormTulip,
+  CuppedRedTulip,
 } from "./Tulips";
 import Sparkles from "./Sparkles";
 import MysticalSmoke from "./MysticalSmoke";
@@ -38,7 +39,8 @@ type TulipType =
   | "spiral"
   | "iridescent"
   | "storm"
-  | "rounded";
+  | "rounded"
+  | "cupped-red";
 type IdeaType = RoseType | "music" | "playlists";
 
 type SceneProps = {
@@ -1609,6 +1611,7 @@ function TulipComponent({ tulipType }: { tulipType: TulipType }) {
       {tulipType === "iridescent" && <IridescentTulip />}
       {tulipType === "storm" && <StormTulip />}
       {tulipType === "rounded" && <RoundedTulip />}
+      {tulipType === "cupped-red" && <CuppedRedTulip />}
     </group>
   );
 }

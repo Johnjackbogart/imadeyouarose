@@ -222,6 +222,62 @@ function createTulipPetalGeometry({
   return geometry;
 }
 
+// Creates a cupped petal with proper 3D spoon-like curvature for realistic tulips
+function createCuppedPetalGeometry(
+  width: number,
+  height: number,
+  cupDepth: number = 0.18
+) {
+  // Use more subdivisions for smoother curves
+  const geometry = new THREE.PlaneGeometry(width, height, 16, 22);
+  const position = geometry.attributes.position as THREE.BufferAttribute;
+  const vertex = new THREE.Vector3();
+  const halfHeight = height / 2;
+  const halfWidth = width / 2;
+
+  for (let i = 0; i < position.count; i += 1) {
+    vertex.fromBufferAttribute(position, i);
+
+    // t goes from 0 (bottom) to 1 (top)
+    const t = (vertex.y + halfHeight) / height;
+
+    // Tulip petal profile: narrow at base, widest around 55-65%, then taper to rounded tip
+    // Real tulip petals have a distinctive oval shape with pointed/rounded top
+    const baseNarrow = Math.pow(t, 0.4); // Opens up quickly from base
+    const topTaper = 1 - Math.pow(Math.max(0, t - 0.6) * 2.5, 2); // Tapers after 60%
+    const widthScale = 0.12 + baseNarrow * topTaper * 0.88;
+    vertex.x *= widthScale;
+
+    // Edge position (0 = center, 1 = edge)
+    const currentHalfWidth = halfWidth * widthScale;
+    const edge = currentHalfWidth > 0.001 ? Math.abs(vertex.x) / currentHalfWidth : 0;
+
+    // Cross-sectional cupping - edges curve inward (concave like a spoon)
+    // Creates the characteristic cupped tulip shape
+    const cupStrength = Math.sin(t * Math.PI * 0.9) * cupDepth;
+    const crossCup = edge * edge * cupStrength;
+    vertex.z -= crossCup;
+
+    // Main forward curve - petal bulges outward in the middle
+    const forwardBulge = Math.sin(t * Math.PI * 0.75) * 0.18;
+    vertex.z += forwardBulge * (1 - edge * 0.3);
+
+    // Inward lean at top to create closed cup appearance
+    const topInward = Math.pow(t, 2.5) * 0.12;
+    vertex.z -= topInward;
+
+    // Subtle edge waviness for organic feel
+    const edgeWave = edge * edge * Math.sin(t * Math.PI * 2) * 0.008;
+    vertex.z += edgeWave;
+
+    position.setXYZ(i, vertex.x, vertex.y, vertex.z);
+  }
+
+  geometry.translate(0, height / 2, 0);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function createLeafGeometry() {
   const geometry = new THREE.PlaneGeometry(0.5, 1.25, 6, 14);
   const position = geometry.attributes.position as THREE.BufferAttribute;
@@ -918,5 +974,173 @@ export function StormTulip() {
       config={STORM_BLOOM}
       swayStrength={0.02}
     />
+  );
+}
+
+// Specialized bloom component for cupped tulips with realistic petal geometry
+function CuppedTulipBloom({
+  petalMaterial,
+  innerMaterial,
+  centerMaterial,
+  calyxMaterial,
+}: {
+  petalMaterial: THREE.Material;
+  innerMaterial: THREE.Material;
+  centerMaterial: THREE.Material;
+  calyxMaterial: THREE.Material;
+}) {
+  const config = CUPPED_RED_BLOOM;
+
+  // Use the new cupped petal geometry
+  const outerGeometry = useMemo(
+    () => createCuppedPetalGeometry(config.outerWidth, config.outerHeight, 0.2),
+    []
+  );
+
+  const innerGeometry = useMemo(
+    () => createCuppedPetalGeometry(config.innerWidth, config.innerHeight, 0.15),
+    []
+  );
+
+  const calyxGeometry = useMemo(() => {
+    const geometry = new THREE.ConeGeometry(0.18, 0.12, 6, 1, true);
+    geometry.translate(0, 0.04, 0);
+    return geometry;
+  }, []);
+
+  return (
+    <group position={[0, config.baseY, 0]}>
+      {/* Calyx at base */}
+      <mesh geometry={calyxGeometry} material={calyxMaterial} rotation={[Math.PI, 0, 0]} />
+
+      {/* Outer petals - 3 equally spaced */}
+      {Array.from({ length: 3 }, (_, i) => {
+        const angle = (i / 3) * Math.PI * 2;
+        return (
+          <group key={`outer-${i}`} rotation={[0, angle, 0]}>
+            <mesh
+              geometry={outerGeometry}
+              material={petalMaterial}
+              position={[0, 0, config.outerRadius]}
+              rotation={[config.outerTilt, 0, 0]}
+            />
+          </group>
+        );
+      })}
+
+      {/* Inner petals - 3 equally spaced, offset from outer */}
+      {Array.from({ length: 3 }, (_, i) => {
+        const angle = (i / 3) * Math.PI * 2 + Math.PI / 3; // Offset by 60 degrees
+        return (
+          <group key={`inner-${i}`} rotation={[0, angle, 0]}>
+            <mesh
+              geometry={innerGeometry}
+              material={innerMaterial}
+              position={[0, 0.02, config.innerRadius]}
+              rotation={[config.innerTilt, 0, 0]}
+              scale={0.92}
+            />
+          </group>
+        );
+      })}
+
+      {/* Center stamens */}
+      <mesh
+        geometry={centerGeometry}
+        material={centerMaterial}
+        position={[0, 0.28, 0]}
+        scale={0.7}
+      />
+    </group>
+  );
+}
+
+export function CuppedRedTulip() {
+  const petalMap = useTulipTexture("/tulips/tulip1.jpeg");
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    groupRef.current.rotation.y = Math.sin(t * 0.4) * 0.04;
+    groupRef.current.rotation.z = Math.sin(t * 0.35) * 0.025;
+  });
+
+  // Classic red tulip materials
+  const petalMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#cc2936",
+        map: petalMap,
+        roughness: 0.55,
+        metalness: 0.05,
+        side: THREE.DoubleSide,
+      }),
+    [petalMap]
+  );
+
+  const innerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#a8212c",
+        map: petalMap,
+        roughness: 0.5,
+        metalness: 0.04,
+        side: THREE.DoubleSide,
+      }),
+    [petalMap]
+  );
+
+  const stemMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#3d9a63",
+        roughness: 0.7,
+        metalness: 0.05,
+      }),
+    []
+  );
+
+  const leafMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#2f7f55",
+        roughness: 0.75,
+        metalness: 0.04,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
+
+  const centerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#1a1a1a",
+        roughness: 0.6,
+        metalness: 0.1,
+      }),
+    []
+  );
+
+  const calyxMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#2d7a4f",
+        roughness: 0.75,
+        metalness: 0.05,
+      }),
+    []
+  );
+
+  return (
+    <group ref={groupRef}>
+      <TulipStem stemMaterial={stemMaterial} leafMaterial={leafMaterial} />
+      <CuppedTulipBloom
+        petalMaterial={petalMaterial}
+        innerMaterial={innerMaterial}
+        centerMaterial={centerMaterial}
+        calyxMaterial={calyxMaterial}
+      />
+    </group>
   );
 }
