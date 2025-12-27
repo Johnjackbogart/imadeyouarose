@@ -122,7 +122,7 @@ function App() {
         onComplete={() => setSceneVisible(true)}
       />
       <div className={`message${sceneVisible ? " is-hidden" : ""}`}>
-        <h1>I'm an idiot!</h1>
+        <h1>I'm a sad idiot!</h1>
       </div>
       {sceneVisible && (
         <>
